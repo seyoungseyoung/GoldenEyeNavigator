@@ -16,52 +16,54 @@ interface PortfolioState {
 
 const PortfolioContext = createContext<PortfolioState | undefined>(undefined);
 
-const STRATEGY_STORAGE_KEY = 'goldenYearsPortfolioStrategy';
-const MARKET_UPDATE_STORAGE_KEY = 'goldenYearsMarketUpdate';
+// const STRATEGY_STORAGE_KEY = 'goldenYearsPortfolioStrategy'; // Temporarily unused
+// const MARKET_UPDATE_STORAGE_KEY = 'goldenYearsMarketUpdate'; // Temporarily unused
 
 export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
   const [strategy, setStrategyState] = useState<InvestmentStrategyOutput | null>(null);
   const [marketUpdate, setMarketUpdateState] = useState<SummarizeMarketChangesOutput | null>(null);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
-  // Load initial state from localStorage
+  // Load initial state - TEMPORARILY DISABLED localStorage reading
   useEffect(() => {
-    let strategyToSet: InvestmentStrategyOutput | null = null;
-    let marketUpdateToSet: SummarizeMarketChangesOutput | null = null;
+    // let strategyToSet: InvestmentStrategyOutput | null = null;
+    // let marketUpdateToSet: SummarizeMarketChangesOutput | null = null;
 
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        const storedStrategy = localStorage.getItem(STRATEGY_STORAGE_KEY);
-        if (storedStrategy) {
-          try {
-            strategyToSet = JSON.parse(storedStrategy);
-          } catch (e) {
-            console.error("Failed to parse stored strategy from localStorage. Clearing it.", e);
-            localStorage.removeItem(STRATEGY_STORAGE_KEY); // Clear corrupted data
-          }
-        }
-      } catch (error) {
-        console.error("Error accessing stored strategy from localStorage", error);
-      }
+    // if (typeof window !== 'undefined' && window.localStorage) {
+    //   try {
+    //     const storedStrategy = localStorage.getItem(STRATEGY_STORAGE_KEY);
+    //     if (storedStrategy) {
+    //       try {
+    //         strategyToSet = JSON.parse(storedStrategy);
+    //       } catch (e) {
+    //         console.error("Failed to parse stored strategy from localStorage. Clearing it.", e);
+    //         // localStorage.removeItem(STRATEGY_STORAGE_KEY); 
+    //       }
+    //     }
+    //   } catch (error) {
+    //     console.error("Error accessing stored strategy from localStorage", error);
+    //   }
 
-      try {
-        const storedMarketUpdate = localStorage.getItem(MARKET_UPDATE_STORAGE_KEY);
-        if (storedMarketUpdate) {
-          try {
-            marketUpdateToSet = JSON.parse(storedMarketUpdate);
-          } catch (e) {
-            console.error("Failed to parse stored market update from localStorage. Clearing it.", e);
-            localStorage.removeItem(MARKET_UPDATE_STORAGE_KEY); // Clear corrupted data
-          }
-        }
-      } catch (error) {
-        console.error("Error accessing stored market update from localStorage", error);
-      }
-    }
+    //   try {
+    //     const storedMarketUpdate = localStorage.getItem(MARKET_UPDATE_STORAGE_KEY);
+    //     if (storedMarketUpdate) {
+    //       try {
+    //         marketUpdateToSet = JSON.parse(storedMarketUpdate);
+    //       } catch (e) {
+    //         console.error("Failed to parse stored market update from localStorage. Clearing it.", e);
+    //         // localStorage.removeItem(MARKET_UPDATE_STORAGE_KEY);
+    //       }
+    //     }
+    //   } catch (error) {
+    //     console.error("Error accessing stored market update from localStorage", error);
+    //   }
+    // }
     
-    setStrategyState(strategyToSet);
-    setMarketUpdateState(marketUpdateToSet);
-    setIsInitialized(true); // Signal that initialization is complete
+    // setStrategyState(strategyToSet);
+    // setMarketUpdateState(marketUpdateToSet);
+    setStrategyState(null); // Initialize with null
+    setMarketUpdateState(null); // Initialize with null
+    setIsInitialized(true); // Signal that initialization is complete immediately
   }, []);
   
   const setStrategy = (newStrategy: InvestmentStrategyOutput | null) => {
@@ -72,32 +74,34 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
     setMarketUpdateState(newUpdate);
   };
   
+  // TEMPORARILY DISABLED localStorage writing for strategy
   useEffect(() => {
-    if (isInitialized && typeof window !== 'undefined' && window.localStorage) {
-      try {
-        if (strategy) {
-          localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(strategy));
-        } else {
-          localStorage.removeItem(STRATEGY_STORAGE_KEY);
-        }
-      } catch (error) {
-        console.error("Failed to save strategy to localStorage", error);
-      }
-    }
+    // if (isInitialized && typeof window !== 'undefined' && window.localStorage) {
+    //   try {
+    //     if (strategy) {
+    //       localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(strategy));
+    //     } else {
+    //       localStorage.removeItem(STRATEGY_STORAGE_KEY);
+    //     }
+    //   } catch (error) {
+    //     console.error("Failed to save strategy to localStorage", error);
+    //   }
+    // }
   }, [strategy, isInitialized]);
 
+  // TEMPORARILY DISABLED localStorage writing for marketUpdate
   useEffect(() => {
-    if (isInitialized && typeof window !== 'undefined' && window.localStorage) {
-      try {
-        if (marketUpdate) {
-          localStorage.setItem(MARKET_UPDATE_STORAGE_KEY, JSON.stringify(marketUpdate));
-        } else {
-          localStorage.removeItem(MARKET_UPDATE_STORAGE_KEY);
-        }
-      } catch (error) {
-        console.error("Failed to save marketUpdate to localStorage", error);
-      }
-    }
+    // if (isInitialized && typeof window !== 'undefined' && window.localStorage) {
+    //   try {
+    //     if (marketUpdate) {
+    //       localStorage.setItem(MARKET_UPDATE_STORAGE_KEY, JSON.stringify(marketUpdate));
+    //     } else {
+    //       localStorage.removeItem(MARKET_UPDATE_STORAGE_KEY);
+    //     }
+    //   } catch (error) {
+    //     console.error("Failed to save marketUpdate to localStorage", error);
+    //   }
+    // }
   }, [marketUpdate, isInitialized]);
 
   return (

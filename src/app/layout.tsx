@@ -2,9 +2,9 @@
 import type { Metadata } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
-// import Header from '@/components/layout/Header'; // Temporarily removed
+import Header from '@/components/layout/Header'; // Restored
 import { PortfolioProvider } from '@/contexts/PortfolioContext';
-// import { Toaster } from "@/components/ui/toaster"; // Temporarily removed
+import { Toaster } from "@/components/ui/toaster"; // Restored
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -25,8 +25,9 @@ export default function RootLayout({
     <html lang="ko" className={geistSans.variable} suppressHydrationWarning>
       <body>
         <PortfolioProvider>
+          <Header />
           <main className="flex-grow container mx-auto px-4 py-8">{children}</main>
-          {/* <Toaster /> */}
+          <Toaster />
         </PortfolioProvider>
       </body>
     </html>

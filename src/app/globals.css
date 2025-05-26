@@ -6,7 +6,6 @@
 @layer base {
   body {
     font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-    /* Force a very visible background to check if CSS is loading at all */
     background-color: lightcoral !important; 
     color: black !important;
     min-height: 100vh;
@@ -14,7 +13,7 @@
     flex-direction: column;
   }
 
-  /* Temporarily comment out most custom variables to isolate issues */
+  /* All CSS variables and other root/dark styles remain commented out for now */
   /*
   :root {
     --background: 60 56% 91%; 
@@ -89,11 +88,10 @@
     --sidebar-ring: hsl(var(--ring));
   }
   */
-}
-
-@layer base {
+  
+  /* Temporarily remove this rule as --border might be undefined if variables are commented out
   * {
-    @apply border-border; /* This might cause issues if --border is not defined, but let's keep it for now */
+    @apply border-border;
   }
-  /* body styles are now at the top of this @layer base block */
+  */
 }
