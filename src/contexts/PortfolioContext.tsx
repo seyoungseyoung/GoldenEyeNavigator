@@ -10,7 +10,7 @@ interface PortfolioState {
   setStrategy: (strategy: InvestmentStrategyOutput | null) => void;
   marketUpdate: SummarizeMarketChangesOutput | null;
   setMarketUpdate: (update: SummarizeMarketChangesOutput | null) => void;
-  isInitialized: boolean; // New state to indicate if context has loaded initial data
+  isInitialized: boolean;
 }
 
 const PortfolioContext = createContext<PortfolioState | undefined>(undefined);
@@ -25,39 +25,57 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
 
   // Load initial state from localStorage
   useEffect(() => {
+    let strategyToSet: InvestmentStrategyOutput | null = null;
+    let marketUpdateToSet: SummarizeMarketChangesOutput | null = null;
+
     try {
       const storedStrategy = localStorage.getItem(STRATEGY_STORAGE_KEY);
       if (storedStrategy) {
-        setStrategyState(JSON.parse(storedStrategy));
-      }
-      const storedMarketUpdate = localStorage.getItem(MARKET_UPDATE_STORAGE_KEY);
-      if (storedMarketUpdate) {
-        setMarketUpdateState(JSON.parse(storedMarketUpdate));
+        try {
+          strategyToSet = JSON.parse(storedStrategy);
+        } catch (e) {
+          console.error("Failed to parse stored strategy from localStorage. Clearing it.", e);
+          localStorage.removeItem(STRATEGY_STORAGE_KEY); // Clear corrupted data
+        }
       }
     } catch (error) {
-      console.error("Failed to load from localStorage on init", error);
+      console.error("Error accessing stored strategy from localStorage", error);
     }
+    setStrategyState(strategyToSet);
+
+    try {
+      const storedMarketUpdate = localStorage.getItem(MARKET_UPDATE_STORAGE_KEY);
+      if (storedMarketUpdate) {
+        try {
+          marketUpdateToSet = JSON.parse(storedMarketUpdate);
+        } catch (e) {
+          console.error("Failed to parse stored market update from localStorage. Clearing it.", e);
+          localStorage.removeItem(MARKET_UPDATE_STORAGE_KEY); // Clear corrupted data
+        }
+      }
+    } catch (error) {
+      console.error("Error accessing stored market update from localStorage", error);
+    }
+    setMarketUpdateState(marketUpdateToSet);
+
     setIsInitialized(true); // Signal that initialization is complete
   }, []);
   
-  // Update strategy and let useEffect handle persistence
   const setStrategy = (newStrategy: InvestmentStrategyOutput | null) => {
     setStrategyState(newStrategy);
   };
 
-  // Update marketUpdate and let useEffect handle persistence
   const setMarketUpdate = (newUpdate: SummarizeMarketChangesOutput | null) => {
     setMarketUpdateState(newUpdate);
   };
   
-  // Persist strategy to localStorage when it changes and context is initialized
   useEffect(() => {
     if (isInitialized) {
       try {
         if (strategy) {
-            localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(strategy));
+          localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(strategy));
         } else {
-            localStorage.removeItem(STRATEGY_STORAGE_KEY);
+          localStorage.removeItem(STRATEGY_STORAGE_KEY);
         }
       } catch (error) {
         console.error("Failed to save strategy to localStorage", error);
@@ -65,21 +83,19 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [strategy, isInitialized]);
 
-  // Persist marketUpdate to localStorage when it changes and context is initialized
   useEffect(() => {
     if (isInitialized) {
       try {
         if (marketUpdate) {
-            localStorage.setItem(MARKET_UPDATE_STORAGE_KEY, JSON.stringify(marketUpdate));
+          localStorage.setItem(MARKET_UPDATE_STORAGE_KEY, JSON.stringify(marketUpdate));
         } else {
-            localStorage.removeItem(MARKET_UPDATE_STORAGE_KEY);
+          localStorage.removeItem(MARKET_UPDATE_STORAGE_KEY);
         }
       } catch (error) {
         console.error("Failed to save marketUpdate to localStorage", error);
       }
     }
   }, [marketUpdate, isInitialized]);
-
 
   return (
     <PortfolioContext.Provider value={{ strategy, setStrategy, marketUpdate, setMarketUpdate, isInitialized }}>

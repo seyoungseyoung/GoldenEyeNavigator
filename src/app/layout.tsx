@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { Geist } from 'next/font/google'; // Using Geist Sans only as per user's file, Geist_Mono removed
+import { Geist } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
-import { Toaster } from '@/components/ui/toaster';
+// import { Toaster } from '@/components/ui/toaster'; // Temporarily removed for debugging
 import { PortfolioProvider } from '@/contexts/PortfolioContext';
 
 const geistSans = Geist({
@@ -21,12 +21,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={geistSans.variable}>
+    <html lang="ko" className={geistSans.variable} suppressHydrationWarning>
       <body>
         <PortfolioProvider>
           <Header />
           <main className="flex-grow container mx-auto px-4 py-8">{children}</main>
-          <Toaster />
+          {/* <Toaster /> */}
         </PortfolioProvider>
       </body>
     </html>
