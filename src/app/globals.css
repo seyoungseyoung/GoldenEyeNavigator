@@ -4,6 +4,10 @@
 
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  @apply bg-background text-foreground;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 @layer base {
@@ -33,6 +37,16 @@ body {
     --chart-4: 60 30% 70%; /* Muted Green/Beige */
     --chart-5: 0 0% 50%; /* Gray */
     --radius: 0.5rem;
+
+    /* Sidebar Variables - Light Theme */
+    --sidebar-background: var(--card);
+    --sidebar-foreground: var(--card-foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
   }
 
   .dark {
@@ -60,6 +74,16 @@ body {
     --chart-3: 30 50% 50%;
     --chart-4: 60 25% 60%;
     --chart-5: 0 0% 70%;
+
+    /* Sidebar Variables - Dark Theme */
+    --sidebar-background: var(--card);
+    --sidebar-foreground: var(--card-foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
   }
 }
 
