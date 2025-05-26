@@ -1,75 +1,71 @@
-import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { Download, ArrowRight } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, BarChart2, Bell, ShieldCheck } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
-export default function AboutPage() {
+export default function HomePage() {
   return (
-    <div className="container mx-auto py-8 px-4">
-      <section className="mb-12 text-center">
-        <Image
-          src="https://placehold.co/150x150.png"
-          alt="Your Name"
-          width={150}
-          height={150}
-          data-ai-hint="profile picture"
-          className="rounded-full mx-auto mb-6 shadow-lg"
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-150px)] text-center">
+      <Image 
+        src="https://i.imgur.com/B4gzCpz.png"
+        alt="황금빛 노후 포트폴리오 일러스트"
+        width={300}
+        height={200}
+        className="mb-8 rounded-lg shadow-lg w-auto"
+        data-ai-hint="retirement growth"
+        priority
+        unoptimized={true}
+      />
+      <h1 className="text-5xl font-bold text-primary mb-6">
+        황금빛 노후 포트폴리오
+      </h1>
+      <p className="text-xl text-foreground/80 mb-10 max-w-2xl">
+        “맞춤형 질문으로 시작하여, 당신만의 투자 전략과 실행 지침을 받아보세요.”
+      </p>
+      <Link href="/questionnaire">
+        <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg px-8 py-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          나만의 맞춤 전략 받기 <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
+      </Link>
+
+      <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl w-full">
+        <FeatureCard
+          icon={<ShieldCheck className="h-10 w-10 text-primary" />}
+          title="맞춤형 전략"
+          description="약 8가지 질문에 답하고 은퇴 계획에 맞춘 투자 계획을 받아보세요."
         />
-        <h1 className="text-4xl font-bold mb-2 text-primary">Jane Doe</h1>
-        <p className="text-xl text-muted-foreground mb-6">Full-Stack Developer & UI/UX Enthusiast</p>
-        <div className="flex justify-center gap-4">
-          <Button asChild>
-            <Link href="/contact">
-              Get in Touch <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <a href="/placeholder-resume.pdf" download>
-              Download CV <Download className="ml-2 h-4 w-4" />
-            </a>
-          </Button>
-        </div>
-      </section>
-
-      <section className="mb-12">
-        <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-          <CardHeader>
-            <CardTitle className="text-2xl text-primary">About Me</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CardDescription className="text-lg space-y-4">
-              <p>
-                Hello! I&apos;m Jane, a passionate Full-Stack Developer with a keen eye for design and user experience.
-                I specialize in creating modern, responsive, and user-friendly web applications.
-                With a background in computer science and several years of hands-on experience, I&apos;ve honed my skills in
-                various technologies including Next.js, React, Node.js, and Python.
-              </p>
-              <p>
-                My journey in tech is driven by a constant curiosity and a desire to solve real-world problems
-                through elegant and efficient code. I believe in lifelong learning and am always excited to explore
-                new tools and frameworks. When I&apos;m not coding, you can find me exploring the outdoors, reading about
-                the latest tech trends, or contributing to open-source projects.
-              </p>
-              <p>
-                This portfolio showcases some of my recent work and ongoing projects. Feel free to explore and
-                reach out if you&apos;d like to collaborate or learn more about my experience!
-              </p>
-            </CardDescription>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section>
-        <h2 className="text-3xl font-semibold mb-6 text-center text-primary">My Skills</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {['JavaScript', 'TypeScript', 'React', 'Next.js', 'Node.js', 'Python', 'HTML/CSS', 'Tailwind CSS', 'Firebase', 'SQL', 'NoSQL', 'Git'].map((skill) => (
-            <Card key={skill} className="text-center p-6 shadow-md hover:shadow-lg transition-shadow duration-300">
-              <CardTitle className="text-lg">{skill}</CardTitle>
-            </Card>
-          ))}
-        </div>
-      </section>
+        <FeatureCard
+          icon={<BarChart2 className="h-10 w-10 text-primary" />}
+          title="AI 기반 인사이트"
+          description="AI를 활용하여 자산 배분을 생성하고 전략에 대한 명확한 설명을 받아보세요."
+        />
+        <FeatureCard
+          icon={<Bell className="h-10 w-10 text-primary" />}
+          title="최신 정보 확인"
+          description="시장 해설과 포트폴리오 변경 사항을 통해 자신감 있는 결정을 내리세요."
+        />
+      </div>
     </div>
+  );
+}
+
+interface FeatureCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}
+
+function FeatureCard({ icon, title, description }: FeatureCardProps) {
+  return (
+    <Card className="bg-card/80 shadow-lg hover:shadow-xl transition-shadow">
+      <CardHeader className="items-center">
+        {icon}
+        <CardTitle className="text-2xl text-primary mt-2">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <CardDescription className="text-foreground/70 text-center">{description}</CardDescription>
+      </CardContent>
+    </Card>
   );
 }

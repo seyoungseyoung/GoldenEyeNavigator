@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
-import { Geist } from 'next/font/google'; // Using Geist Sans as primary
+import { Geist } from 'next/font/google'; // Using Geist Sans only as per user's file, Geist_Mono removed
 import './globals.css';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import AppSidebar from '@/components/layout/app-sidebar';
-import AppHeader from '@/components/layout/app-header';
-import { Toaster } from "@/components/ui/toaster";
+import Header from '@/components/layout/Header';
+import { Toaster } from '@/components/ui/toaster';
+import { PortfolioProvider } from '@/contexts/PortfolioContext';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -12,8 +11,8 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: 'Portfolio Revamp',
-  description: 'A revamped personal portfolio with AI-powered introductions.',
+  title: '황금빛 노후 포트폴리오',
+  description: '은퇴자를 위한 맞춤형 투자 전략.',
 };
 
 export default function RootLayout({
@@ -22,18 +21,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} antialiased`}>
-        <SidebarProvider defaultOpen>
-          <AppSidebar />
-          <div className="flex flex-col flex-1 md:ml-[var(--sidebar-width)] group-data-[collapsible=icon]/sidebar-wrapper:md:ml-[var(--sidebar-width-icon)] transition-[margin-left] duration-200 ease-linear">
-            <AppHeader />
-            <main className="flex-1 p-4 md:p-6 lg:p-8 bg-background">
-              {children}
-            </main>
-          </div>
-        </SidebarProvider>
-        <Toaster />
+    <html lang="ko" className={geistSans.variable}>
+      <body>
+        <PortfolioProvider>
+          <Header />
+          <main className="flex-grow container mx-auto px-4 py-8">{children}</main>
+          <Toaster />
+        </PortfolioProvider>
       </body>
     </html>
   );
