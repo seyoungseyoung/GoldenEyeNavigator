@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header'; // Restored
-import { PortfolioProvider } from '@/contexts/PortfolioContext';
+import { PortfolioProvider } from '@/contexts/PortfolioContext'; // Ensure this is correctly used
 import { Toaster } from "@/components/ui/toaster"; // Restored
 
 const geistSans = Geist({
@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className={geistSans.variable} suppressHydrationWarning>
       <body>
-        <PortfolioProvider>
+        <PortfolioProvider> {/* Ensured PortfolioProvider wraps Header and children */}
           <Header />
           <main className="flex-grow container mx-auto px-4 py-8">{children}</main>
           <Toaster />
