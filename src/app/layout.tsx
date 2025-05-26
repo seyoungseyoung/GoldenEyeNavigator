@@ -1,9 +1,11 @@
+
 import type { Metadata } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
 // import { Toaster } from '@/components/ui/toaster'; // Temporarily removed for debugging
 import { PortfolioProvider } from '@/contexts/PortfolioContext';
+import { Toaster } from "@/components/ui/toaster"; // Re-add Toaster
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -26,7 +28,7 @@ export default function RootLayout({
         <PortfolioProvider>
           <Header />
           <main className="flex-grow container mx-auto px-4 py-8">{children}</main>
-          {/* <Toaster /> */}
+          <Toaster />
         </PortfolioProvider>
       </body>
     </html>

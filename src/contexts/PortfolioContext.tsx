@@ -1,3 +1,4 @@
+
 // src/contexts/PortfolioContext.tsx
 "use client";
 
@@ -28,36 +29,38 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
     let strategyToSet: InvestmentStrategyOutput | null = null;
     let marketUpdateToSet: SummarizeMarketChangesOutput | null = null;
 
-    try {
-      const storedStrategy = localStorage.getItem(STRATEGY_STORAGE_KEY);
-      if (storedStrategy) {
-        try {
-          strategyToSet = JSON.parse(storedStrategy);
-        } catch (e) {
-          console.error("Failed to parse stored strategy from localStorage. Clearing it.", e);
-          localStorage.removeItem(STRATEGY_STORAGE_KEY); // Clear corrupted data
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        const storedStrategy = localStorage.getItem(STRATEGY_STORAGE_KEY);
+        if (storedStrategy) {
+          try {
+            strategyToSet = JSON.parse(storedStrategy);
+          } catch (e) {
+            console.error("Failed to parse stored strategy from localStorage. Clearing it.", e);
+            localStorage.removeItem(STRATEGY_STORAGE_KEY); // Clear corrupted data
+          }
         }
+      } catch (error) {
+        console.error("Error accessing stored strategy from localStorage", error);
       }
-    } catch (error) {
-      console.error("Error accessing stored strategy from localStorage", error);
+
+      try {
+        const storedMarketUpdate = localStorage.getItem(MARKET_UPDATE_STORAGE_KEY);
+        if (storedMarketUpdate) {
+          try {
+            marketUpdateToSet = JSON.parse(storedMarketUpdate);
+          } catch (e) {
+            console.error("Failed to parse stored market update from localStorage. Clearing it.", e);
+            localStorage.removeItem(MARKET_UPDATE_STORAGE_KEY); // Clear corrupted data
+          }
+        }
+      } catch (error) {
+        console.error("Error accessing stored market update from localStorage", error);
+      }
     }
+    
     setStrategyState(strategyToSet);
-
-    try {
-      const storedMarketUpdate = localStorage.getItem(MARKET_UPDATE_STORAGE_KEY);
-      if (storedMarketUpdate) {
-        try {
-          marketUpdateToSet = JSON.parse(storedMarketUpdate);
-        } catch (e) {
-          console.error("Failed to parse stored market update from localStorage. Clearing it.", e);
-          localStorage.removeItem(MARKET_UPDATE_STORAGE_KEY); // Clear corrupted data
-        }
-      }
-    } catch (error) {
-      console.error("Error accessing stored market update from localStorage", error);
-    }
     setMarketUpdateState(marketUpdateToSet);
-
     setIsInitialized(true); // Signal that initialization is complete
   }, []);
   
@@ -70,7 +73,7 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
   };
   
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && typeof window !== 'undefined' && window.localStorage) {
       try {
         if (strategy) {
           localStorage.setItem(STRATEGY_STORAGE_KEY, JSON.stringify(strategy));
@@ -84,7 +87,7 @@ export const PortfolioProvider = ({ children }: { children: ReactNode }) => {
   }, [strategy, isInitialized]);
 
   useEffect(() => {
-    if (isInitialized) {
+    if (isInitialized && typeof window !== 'undefined' && window.localStorage) {
       try {
         if (marketUpdate) {
           localStorage.setItem(MARKET_UPDATE_STORAGE_KEY, JSON.stringify(marketUpdate));
