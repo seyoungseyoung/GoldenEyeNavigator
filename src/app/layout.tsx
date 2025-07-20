@@ -3,6 +3,16 @@ import './globals.css';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Toaster } from "@/components/ui/toaster"
+import { scheduleDailySignalChecks } from '@/services/emailService';
+import '@/ai/flows/market-insight-analyzer';
+import '@/ai/flows/investment-strategy-generator';
+import '@/ai/flows/stock-signal-generator';
+import '@/ai/flows/subscribeToSignals';
+
+// Start the daily email scheduler.
+// This will run once when the server starts in both dev and prod environments.
+scheduleDailySignalChecks();
+console.log('Server started and email scheduler is running.');
 
 export const metadata: Metadata = {
   title: 'GoldenLife Navigator',
