@@ -112,10 +112,11 @@ export function SurveyForm() {
       const result = await investmentStrategyGenerator(values as InvestmentStrategyInput);
       localStorage.setItem('strategyResult', JSON.stringify(result));
       localStorage.setItem('userName', values.name);
-      toast({
-        title: "전략 생성 완료",
-        description: "AI가 맞춤형 투자 전략을 생성했습니다.",
-      });
+      
+      // Set a flag in sessionStorage to indicate successful generation
+      sessionStorage.setItem('strategyGenerated', 'true');
+
+      // Navigate to the strategy page. The toast will be shown there.
       router.push('/strategy');
     } catch (error) {
       console.error('Error generating strategy:', error);
@@ -124,9 +125,10 @@ export function SurveyForm() {
         title: "오류 발생",
         description: "전략 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
       });
-    } finally {
-      setIsLoading(false);
+       setIsLoading(false);
     }
+    // No finally block to set isLoading to false, because the component will unmount on successful navigation.
+    // It is set to false only on error.
   }
 
   return (

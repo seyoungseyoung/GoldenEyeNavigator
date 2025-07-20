@@ -10,14 +10,27 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, CheckCircle, BarChart, BookOpen, BrainCircuit } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { useToast } from '@/hooks/use-toast';
 
 export default function StrategyPage() {
   const [strategy, setStrategy] = useState<InvestmentStrategyOutput | null>(null);
   const [name, setName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
+    // Check for the flag from the survey page
+    const justGenerated = sessionStorage.getItem('strategyGenerated');
+    if (justGenerated === 'true') {
+        toast({
+            title: "전략 생성 완료",
+            description: "AI가 맞춤형 투자 전략을 생성했습니다.",
+        });
+        // Clear the flag to prevent the toast from showing up on reloads
+        sessionStorage.removeItem('strategyGenerated');
+    }
+
     const storedResult = localStorage.getItem('strategyResult');
     const storedName = localStorage.getItem('userName');
 
@@ -33,7 +46,7 @@ export default function StrategyPage() {
       router.push('/survey');
     }
     setLoading(false);
-  }, [router]);
+  }, [router, toast]);
 
   if (loading || !strategy) {
     return (
