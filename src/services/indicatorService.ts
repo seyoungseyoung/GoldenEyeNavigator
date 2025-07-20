@@ -47,10 +47,11 @@ function calculateRSISignals(data: HistoricalDataPoint[], closePrices: number[],
     rsiValues.forEach((rsi, index) => {
         const dataIndex = index + period;
         if (dataIndex < data.length) {
+            const rsiVal = rsi.toFixed(2);
             if (rsi < oversold) {
-                signals.push({ date: data[dataIndex].date, signal: '매수', rationale: `RSI (${rsi.toFixed(2)})가 과매도 구간(${oversold})에 진입했습니다.` });
+                signals.push({ date: data[dataIndex].date, signal: '매수', rationale: `RSI (${rsiVal})가 과매도 구간(${oversold})에 진입했습니다.` });
             } else if (rsi > overbought) {
-                signals.push({ date: data[dataIndex].date, signal: '매도', rationale: `RSI (${rsi.toFixed(2)})가 과매수 구간(${overbought})에 진입했습니다.` });
+                signals.push({ date: data[dataIndex].date, signal: '매도', rationale: `RSI (${rsiVal})가 과매수 구간(${overbought})에 진입했습니다.` });
             }
         }
     });
@@ -74,7 +75,7 @@ function calculateMACDSignals(data: HistoricalDataPoint[], closePrices: number[]
         const curr = macdValues[i];
         const dataIndex = i + slowPeriod -1;
 
-        if (dataIndex < data.length) {
+        if (dataIndex < data.length && curr.MACD && curr.signal && prev.MACD && prev.signal) {
             if (prev.MACD < prev.signal && curr.MACD > curr.signal) {
                 signals.push({ date: data[dataIndex].date, signal: '매수', rationale: 'MACD선이 시그널선을 상향 돌파했습니다 (골든 크로스).' });
             }
@@ -95,10 +96,12 @@ function calculateBollingerBandsSignals(data: HistoricalDataPoint[], closePrices
         const dataIndex = index + period -1;
         if (dataIndex < data.length) {
             const close = data[dataIndex].close;
+            const lower = bb.lower.toFixed(2);
+            const upper = bb.upper.toFixed(2);
             if (close < bb.lower) {
-                signals.push({ date: data[dataIndex].date, signal: '매수', rationale: `주가가 볼린저 밴드 하단(${bb.lower.toFixed(2)}) 아래로 떨어졌습니다.` });
+                signals.push({ date: data[dataIndex].date, signal: '매수', rationale: `주가가 볼린저 밴드 하단(${lower}) 아래로 떨어졌습니다.` });
             } else if (close > bb.upper) {
-                signals.push({ date: data[dataIndex].date, signal: '매도', rationale: `주가가 볼린저 밴드 상단(${bb.upper.toFixed(2)}) 위로 치솟았습니다.` });
+                signals.push({ date: data[dataIndex].date, signal: '매도', rationale: `주가가 볼린저 밴드 상단(${upper}) 위로 치솟았습니다.` });
             }
         }
     });
@@ -123,8 +126,8 @@ function calculateStochasticSignals(data: HistoricalDataPoint[], params: any): O
         const curr = stochValues[i];
         const dataIndex = i + period - 1 + (stochInput.close.length - stochValues.length);
 
-
-        if (dataIndex < data.length) {
+        // Ensure k and d values are defined before using them
+        if (dataIndex < data.length && curr.k !== undefined && curr.d !== undefined && prev.k !== undefined && prev.d !== undefined) {
              const kVal = curr.k.toFixed(2);
              const dVal = curr.d.toFixed(2);
              if (prev.k < 20 && prev.d < 20 && curr.k > curr.d) {
