@@ -1,9 +1,15 @@
+
 import { subDays, format, subYears } from 'date-fns';
 import yahooFinance from 'yahoo-finance2';
 
-type HistoricalDataPoint = {
+// HistoricalDataPoint now includes more fields for accurate indicator calculation.
+export type HistoricalDataPoint = {
   date: string;
+  open: number;
+  high: number;
+  low: number;
   close: number;
+  volume: number;
 };
 
 /**
@@ -23,19 +29,22 @@ export async function getHistoricalData(ticker: string): Promise<HistoricalDataP
       interval: '1d',
     });
 
-    // Filter out any entries without a close price and map to the required format
+    // Filter out any entries with missing data and map to the required format
     const formattedData = results
-      .filter(item => item.close)
+      .filter(item => item.date && item.open && item.high && item.low && item.close && item.volume)
       .map(item => ({
         date: format(new Date(item.date), 'yyyy-MM-dd'),
-        close: parseFloat(item.close.toFixed(2)),
+        open: parseFloat(item.open!.toFixed(2)),
+        high: parseFloat(item.high!.toFixed(2)),
+        low: parseFloat(item.low!.toFixed(2)),
+        close: parseFloat(item.close!.toFixed(2)),
+        volume: item.volume!,
       }));
 
     // Return the most recent 252 data points
     return formattedData.slice(-252);
   } catch (error) {
     console.error(`Failed to fetch historical data for ${ticker}:`, error);
-    // As a fallback, return an empty array or throw the error
     // For this app, we'll return an empty array to prevent a hard crash on the UI
     return [];
   }

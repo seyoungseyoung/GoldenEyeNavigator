@@ -2,25 +2,25 @@
 'use client';
 
 import { useMemo } from 'react';
-import { StockSignalOutput } from '@/ai/flows/stock-signal-generator';
 import { Card } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { format, parseISO } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '../ui/badge';
+import type { StockSignalOutput as AIResult } from '@/ai/flows/stock-signal-generator';
 
-interface StockChartProps {
-    historicalData: StockSignalOutput['historicalData'];
-    historicalSignals: StockSignalOutput['historicalSignals'];
-}
-
-type ProcessedSignal = {
+export type HistoricalSignal = {
     date: string;
     close: number;
-    signal: '강한 매수' | '매수' | '보류' | '매도' | '강한 매도';
+    signal: '매수' | '매도';
     rationale: string;
 };
+
+interface StockChartProps {
+    historicalData: AIResult['historicalData'];
+    historicalSignals: HistoricalSignal[];
+}
 
 // 커스텀 ReferenceDot 렌더링
 const SignalDot = (props: any) => {
@@ -76,36 +76,19 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
   };
 
   const processedSignals = useMemo(() => {
-    if (!historicalSignals || historicalSignals.length === 0 || !historicalData || historicalData.length === 0) {
+    if (!historicalSignals || historicalSignals.length === 0) {
         return [];
     }
 
-    const dataMap = new Map(historicalData.map(d => [d.date, d.close]));
-    const validSignals: ProcessedSignal[] = [];
+    // Sort by date to ensure chronological order before filtering
+    const sortedSignals = [...historicalSignals].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
-    // 1. Filter signals to only include those that exist in historicalData and have a valid price
-    for(const signal of historicalSignals) {
-        if(dataMap.has(signal.date)) {
-            validSignals.push({
-                ...signal,
-                close: dataMap.get(signal.date)!
-            });
-        }
-    }
-    
-    // 2. Sort signals by date to ensure chronological order before filtering
-    validSignals.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    
-    // 3. Filter consecutive signals of the same type
-    if (validSignals.length === 0) return [];
-
-    const filtered: ProcessedSignal[] = [];
-    let lastSignalType: 'buy' | 'sell' | null = null;
+    // Filter consecutive signals of the same type
+    const filtered: HistoricalSignal[] = [];
+    let lastSignalType: '매수' | '매도' | null = null;
   
-    for (const signal of validSignals) {
-      if (signal.signal === '보류') continue;
-  
-      const currentSignalType = signal.signal.includes('매수') ? 'buy' : 'sell';
+    for (const signal of sortedSignals) {
+      const currentSignalType = signal.signal;
   
       if (currentSignalType !== lastSignalType) {
         filtered.push(signal);
@@ -114,7 +97,7 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
     }
     return filtered;
 
-  }, [historicalData, historicalSignals]);
+  }, [historicalSignals]);
 
 
   return (

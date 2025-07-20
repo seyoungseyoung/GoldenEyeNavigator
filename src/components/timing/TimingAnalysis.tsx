@@ -14,7 +14,8 @@ import { generateStockSignal, StockSignalOutput } from '@/ai/flows/stock-signal-
 import { subscribeToSignals } from '@/ai/flows/subscribeToSignals';
 import { Loader2, Wand2, Bell, Mail, AreaChart } from 'lucide-react';
 import { Separator } from '../ui/separator';
-import { StockChartWithSignals } from './StockChartWithSignals';
+import { StockChartWithSignals, HistoricalSignal } from './StockChartWithSignals';
+import { calculateSignals } from '@/services/indicatorService';
 
 const signalFormSchema = z.object({
   ticker: z.string().min(1, { message: '티커를 입력해주세요.' }).toUpperCase(),
@@ -40,10 +41,16 @@ const getSignalStyle = (signal: string) => {
     }
 }
 
+type AnalysisResult = StockSignalOutput & { 
+  ticker: string; 
+  tradingStrategy?: string;
+  historicalSignals: HistoricalSignal[];
+};
+
 export function TimingAnalysis() {
   const [isSignalLoading, setIsSignalLoading] = useState(false);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
-  const [result, setResult] = useState<StockSignalOutput & { ticker: string; tradingStrategy?: string } | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
   const { toast } = useToast();
 
   const signalForm = useForm<z.infer<typeof signalFormSchema>>({
@@ -65,8 +72,22 @@ export function TimingAnalysis() {
     setIsSignalLoading(true);
     setResult(null);
     try {
+      // Step 1: AI selects indicators and parameters
       const signalResult = await generateStockSignal(values);
-      setResult({ ...signalResult, ticker: values.ticker, tradingStrategy: values.tradingStrategy });
+
+      // Step 2: Application calculates signals based on AI's strategy
+      const historicalSignals = calculateSignals(
+        signalResult.historicalData,
+        signalResult.recommendedIndicators
+      );
+
+      setResult({ 
+        ...signalResult, 
+        ticker: values.ticker, 
+        tradingStrategy: values.tradingStrategy,
+        historicalSignals
+      });
+
     } catch (error) {
       console.error('Error generating stock signal:', error);
       toast({
@@ -84,11 +105,13 @@ export function TimingAnalysis() {
     setIsEmailLoading(true);
 
     try {
+        const indicatorsForEmail = result.recommendedIndicators.map(ind => `${ind.name} (${ind.fullName})`);
+
         const response = await subscribeToSignals({
             email: values.email,
             ticker: result.ticker,
             tradingStrategy: result.tradingStrategy,
-            indicators: [result.indicator1, result.indicator2, result.indicator3],
+            indicators: indicatorsForEmail,
         });
 
         toast({
@@ -168,20 +191,21 @@ export function TimingAnalysis() {
         <Card className="bg-card/50 border-border/50 animate-in fade-in-50">
           <CardHeader>
             <CardTitle className="text-primary">{result.ticker} 매매 신호 분석</CardTitle>
+            <CardDescription>{result.rationale}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                {[result.indicator1, result.indicator2, result.indicator3].map((indicator, index) => (
+                {result.recommendedIndicators.map((indicator, index) => (
                     <div key={index} className="p-4 bg-background/50 rounded-lg">
                         <p className="text-sm text-muted-foreground">추천 지표 {index + 1}</p>
-                        <p className="font-bold text-lg text-foreground">{indicator}</p>
+                        <p className="font-bold text-lg text-foreground">{indicator.name} <span className="text-sm">({indicator.fullName})</span></p>
                     </div>
                 ))}
             </div>
             <div className="text-center py-4">
                 <p className="text-sm text-muted-foreground mb-2">종합 매매 신호 (최신)</p>
-                <p className={`font-bold text-3xl font-headline border-2 rounded-full inline-block px-6 py-2 ${getSignalStyle(result.signal)}`}>
-                    {result.signal}
+                <p className={`font-bold text-3xl font-headline border-2 rounded-full inline-block px-6 py-2 ${getSignalStyle(result.finalSignal)}`}>
+                    {result.finalSignal}
                 </p>
             </div>
             

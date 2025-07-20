@@ -2,9 +2,11 @@
 'use server';
 
 /**
- * @fileOverview A stock signal generator AI agent.
+ * @fileOverview A stock signal generator AI agent. This agent selects the best technical indicators
+ * and their parameters for a given stock and trading strategy. The actual signal calculation
+ * is performed by the application code.
  *
- * - generateStockSignal - A function that handles the stock signal generation process.
+ * - generateStockSignal - A function that handles the indicator selection process.
  * - StockSignalInput - The input type for the generateStockSignal function.
  * - StockSignalOutput - The return type for the generateStockSignal function.
  */
@@ -13,6 +15,7 @@ import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { getHistoricalData } from '@/services/stockService';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
+import { INDICATORS } from '@/services/indicatorService';
 
 const StockSignalInputSchema = z.object({
   ticker: z.string().describe('The ticker symbol of the stock.'),
@@ -25,26 +28,25 @@ const StockSignalInputSchema = z.object({
 });
 export type StockSignalInput = z.infer<typeof StockSignalInputSchema>;
 
-const HistoricalSignalPointSchema = z.object({
-    date: z.string().describe("신호가 발생한 날짜 (YYYY-MM-DD 형식)."),
-    signal: z.enum(['강한 매수', '매수', '보류', '매도', '강한 매도']).describe("해당 날짜의 매매 신호. '보류' 신호는 생략해도 좋습니다."),
-    rationale: z.string().describe("해당 신호를 판단한 기술적 분석 근거. 추천된 3개 지표를 기반으로 간결하게 설명합니다."),
+const IndicatorParameterSchema = z.object({
+  name: z.enum(INDICATORS).describe("The name of the technical indicator."),
+  fullName: z.string().describe('The full name of the indicator in Korean. e.g., "상대강도지수"'),
+  params: z.record(z.any()).describe("A key-value object for the indicator's parameters. e.g., {'period': 14, 'overbought': 70, 'oversold': 30}")
 });
 
 const StockSignalOutputSchema = z.object({
-  indicator1: z.string().describe('첫 번째로 추천된 기술 지표 이름. "약어 (한글 전체 이름)" 형식으로 작성해주세요. 예: "RSI (상대강도지수)"'),
-  indicator2: z.string().describe('두 번째로 추천된 기술 지표 이름. "약어 (한글 전체 이름)" 형식으로 작성해주세요. 예: "MACD (이동평균 수렴-확산)"'),
-  indicator3: z.string().describe('세 번째로 추천된 기술 지표 이름. "약어 (한글 전체 이름)" 형식으로 작성해주세요. 예: "Bollinger Bands (볼린저 밴드)"'),
-  signal: z
+  recommendedIndicators: z.array(IndicatorParameterSchema).min(3).max(3)
+    .describe("An array of exactly 3 recommended technical indicators and their parameters."),
+  finalSignal: z
     .enum(['강한 매수', '매수', '보류', '매도', '강한 매도'])
     .describe(
       '세 지표를 종합하여 판단한 **가장 최신 날짜의** 최종 매매 신호. "강한 매수", "매수", "보류", "매도", "강한 매도" 중 하나여야 합니다.'
     ),
+  rationale: z.string().describe("A brief explanation in Korean of why these indicators were chosen and what the combined signal means for the most recent data point."),
   historicalData: z.array(z.object({
     date: z.string(),
     close: z.number(),
   })).describe('Historical stock data for the last 252 days.'),
-  historicalSignals: z.array(HistoricalSignalPointSchema).describe("과거 데이터의 각 주요 지점에서 발생한 매수 또는 매도 신호의 목록. '보류' 신호는 제외하고 의미있는 신호만 최소 3개 이상 포함시켜 주세요.")
 });
 export type StockSignalOutput = z.infer<typeof StockSignalOutputSchema>;
 
@@ -62,17 +64,22 @@ export async function generateStockSignal(
   const jsonSchema = zodToJsonSchema(outputSchemaForPrompt, "StockSignalOutputSchema");
 
   const systemPrompt = `당신은 한국인을 상대하는 주식 기술 분석 전문 AI 어시스턴트입니다.
-제공된 주식 티커, 거래 전략, 그리고 과거 주가 데이터를 바탕으로 다음 두 가지 작업을 수행해야 합니다.
+제공된 주식 티커와 거래 전략을 바탕으로, 가장 적합한 기술 지표 3개를 선택하고, 그 지표를 계산하는 데 필요한 매개변수(parameter)를 결정해야 합니다.
 
-1.  **기술 지표 추천 및 최종 신호 생성**:
-    *   아래 목록에서 가장 적합한 기술 지표 3개를 선택합니다.
-    *   선택된 지표들을 종합적으로 분석하여 **가장 최신 날짜 기준**의 최종 매매 신호('signal' 필드)를 결정합니다.
+**사용 가능한 기술 지표 및 매개변수:**
+- **RSI (상대강도지수):**
+  - \`params\`: \`{ "period": number, "overbought": number, "oversold": number }\` (추천: period 14, overbought 70, oversold 30)
+- **MACD (이동평균 수렴-확산):**
+  - \`params\`: \`{ "fastPeriod": number, "slowPeriod": number, "signalPeriod": number }\` (추천: fast 12, slow 26, signal 9)
+- **BollingerBands (볼린저 밴드):**
+  - \`params\`: \`{ "period": number, "stdDev": number }\` (추천: period 20, stdDev 2)
+- **Stochastic (스토캐스틱 오실레이터):**
+  - \`params\`: \`{ "period": number, "signalPeriod": number }\` (추천: period 14, signalPeriod 3)
 
-2.  **과거 매매 신호 분석 ('historicalSignals' 필드 생성)**:
-    *   제공된 과거 주가 데이터 전체를 분석하여, 추천된 3개의 기술 지표를 근거로 **의미 있는 매수 또는 매도 신호가 발생했던 과거 시점들**을 찾아 목록으로 만듭니다.
-    *   각 신호 발생 시점마다 날짜('date'), 신호 유형('signal'), 그리고 판단 근거('rationale')를 포함해야 합니다.
-    *   '보류' 신호는 'historicalSignals' 목록에 포함하지 마세요. 매수 또는 매도 시점만 알려주면 됩니다.
-    *   **과거 데이터 전체에서 의미있는 매수/매도 신호를 최소 3개 이상 반드시 찾아서 포함해야 합니다.**
+**작업:**
+1.  주어진 티커와 전략에 가장 적합한 **기술 지표 3개를 위 목록에서 선택**합니다.
+2.  선택된 각 지표에 대해 **최적의 매개변수(`params`)를 결정**합니다.
+3.  3개의 지표를 종합적으로 분석하여 **가장 최신 데이터 기준**의 최종 매매 신호(\`finalSignal\`)와 그 근거(\`rationale\`)를 생성합니다.
 
 **출력은 반드시 다음 JSON 스키마를 따르는 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.**
 
@@ -82,23 +89,15 @@ ${JSON.stringify(jsonSchema, null, 2)}
 \`\`\`
 
 **매우 중요한 규칙:**
-- 'signal' 필드의 값은 반드시 "강한 매수", "매수", "보류", "매도", "강한 매도" 5가지 중 하나여야 합니다.
-- 'indicator1', 'indicator2', 'indicator3' 필드에는 아래 목록에서 선택된 기술 지표의 이름을 **"약어 (한글 전체 이름)" 형식**으로 넣어야 합니다. (예: "RSI (상대강도지수)")
-- 모든 설명('rationale')은 한글로 작성해야 합니다.
-
-**사용 가능한 기술 지표 목록:**
-SMA (단순 이동 평균), EMA (지수 이동 평균), MACD (이동평균 수렴-확산), Parabolic SAR (파라볼릭 SAR), Ichimoku Cloud (일목균형표), RSI (상대강도지수), Stochastic Oscillator (스토캐스틱 오실레이터), CCI (상품 채널 지수), ROC (가격 변화율), Bollinger Bands (볼린저 밴드), Keltner Channel (켈트너 채널), OBV (거래량 균형 지표), VWAP (거래량 가중 평균 가격), MFI (자금 흐름 지수), CMF (차이킨 자금 흐름)
+- \`recommendedIndicators\` 배열에는 **정확히 3개의 지표** 객체가 포함되어야 합니다.
+- 각 지표 객체의 \`name\` 필드는 반드시 ["RSI", "MACD", "BollingerBands", "Stochastic"] 중 하나여야 합니다.
+- \`params\` 객체는 위에서 설명한 각 지표의 매개변수 형식을 정확히 따라야 합니다.
+- 모든 설명(\`rationale\`, \`fullName\`)은 한글로 작성해야 합니다.
 `;
 
   const userInput = `
 주식 티커: ${input.ticker}
 거래 전략: ${input.tradingStrategy || '지정되지 않음'}
-
-분석할 과거 주가 데이터 (일부):
-[
-  ${historicalData.slice(0, 5).map(d => `{ "date": "${d.date}", "close": ${d.close} }`).join(',\n  ')},
-  ... (총 ${historicalData.length}일치 데이터)
-]
 `;
 
   const messages: Message[] = [{ role: 'user', content: userInput }];
