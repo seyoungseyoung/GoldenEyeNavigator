@@ -25,7 +25,6 @@ const StockSignalInputSchema = z.object({
     .describe(
       'The desired trading strategy/timing (e.g., short-term volatility, long-term buy and hold).'
     ),
-  // historicalData is passed to the AI for context but not part of the output schema for the prompt.
   historicalData: z.array(z.any()).describe("Historical data for context."), 
 });
 export type StockSignalInput = z.infer<typeof StockSignalInputSchema>;

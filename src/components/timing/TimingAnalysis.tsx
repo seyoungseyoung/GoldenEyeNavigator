@@ -31,12 +31,10 @@ const emailFormSchema = z.object({
 const getSignalStyle = (signal: string) => {
     switch(signal) {
         case '강한 매수':
-            return 'text-green-500 border-green-500';
         case '매수':
-            return 'text-green-400 border-green-400';
-        case '매도':
-            return 'text-red-400 border-red-400';
+            return 'text-green-500 border-green-500';
         case '강한 매도':
+        case '매도':
             return 'text-red-500 border-red-500';
         default: // '보류'
             return 'text-gray-400 border-gray-400';
@@ -119,6 +117,7 @@ export function TimingAnalysis() {
       });
 
       // Step 5: Application calculates signals based on AI's strategy
+      toast({ title: '과거 신호 계산 중...', description: '차트에 표시할 과거 매매 신호를 계산합니다.' });
       const historicalSignals = calculateSignals(
         historicalData,
         signalResult.recommendedIndicators
