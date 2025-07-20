@@ -23,8 +23,13 @@ const nextConfig: NextConfig = {
    webpack: (config, { isServer }) => {
     // This is to prevent the server from restarting when the subscriptions.json file is modified.
     if (!isServer) {
+      const existingIgnored = config.watchOptions.ignored || [];
+      const ignoredPaths = Array.isArray(existingIgnored)
+        ? existingIgnored
+        : [existingIgnored];
+
       config.watchOptions.ignored = [
-        ...(config.watchOptions.ignored || []),
+        ...ignoredPaths,
         path.resolve(__dirname, 'src/data'),
       ];
     }
