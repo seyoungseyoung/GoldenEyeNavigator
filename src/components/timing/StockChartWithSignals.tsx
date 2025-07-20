@@ -24,8 +24,14 @@ interface StockChartProps {
 
 // 커스텀 ReferenceDot 렌더링
 const SignalDot = (props: any) => {
-  const { cx, cy, payload } = props;
-  const isBuySignal = payload.signal.includes('매수');
+  const { cx, cy, signalData } = props;
+
+  // signalData가 없으면 아무것도 렌더링하지 않음
+  if (!signalData || !signalData.signal) {
+      return null;
+  }
+  
+  const isBuySignal = signalData.signal.includes('매수');
 
   return (
     <Popover>
@@ -43,21 +49,21 @@ const SignalDot = (props: any) => {
           <div className="space-y-2">
             <h4 className="font-medium leading-none">신호 상세 정보</h4>
             <p className="text-sm text-muted-foreground">
-              {payload.date}에 발생한 신호 분석입니다.
+              {signalData.date}에 발생한 신호 분석입니다.
             </p>
           </div>
           <div className="grid gap-2">
             <div className="grid grid-cols-3 items-center gap-4">
               <span className="font-semibold">날짜</span>
-              <span className="col-span-2">{payload.date}</span>
+              <span className="col-span-2">{signalData.date}</span>
             </div>
             <div className="grid grid-cols-3 items-center gap-4">
               <span className="font-semibold">신호</span>
-              <Badge variant={isBuySignal ? "default" : "destructive"} className="col-span-2">{payload.signal}</Badge>
+              <Badge variant={isBuySignal ? "default" : "destructive"} className="col-span-2">{signalData.signal}</Badge>
             </div>
             <div className="grid grid-cols-3 items-start gap-4">
                <span className="font-semibold pt-1">근거</span>
-               <p className="col-span-2 text-sm text-muted-foreground">{payload.rationale}</p>
+               <p className="col-span-2 text-sm text-muted-foreground">{signalData.rationale}</p>
             </div>
           </div>
         </div>
@@ -147,9 +153,11 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
                     x={signal.date} 
                     y={signal.close}
                     r={10} 
-                    shape={<SignalDot />}
                     ifOverflow="extendDomain"
-                />
+                >
+                   {/* Pass all signal data to the custom shape */}
+                   <SignalDot signalData={signal} />
+                </ReferenceDot>
             ))}
           </LineChart>
         </ResponsiveContainer>
