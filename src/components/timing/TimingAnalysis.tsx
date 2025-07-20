@@ -31,9 +31,9 @@ const emailFormSchema = z.object({
 const getSignalStyle = (signal: string) => {
     switch(signal) {
         case '강한 매수':
-            return 'text-blue-400 border-blue-400';
+            return 'text-green-500 border-green-500';
         case '매수':
-            return 'text-blue-300 border-blue-300';
+            return 'text-green-400 border-green-400';
         case '매도':
             return 'text-red-400 border-red-400';
         case '강한 매도':
