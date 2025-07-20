@@ -25,6 +25,9 @@ export function MarketAnalysis() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      marketNews: "",
+    }
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
