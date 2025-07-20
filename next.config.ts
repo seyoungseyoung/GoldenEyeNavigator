@@ -2,39 +2,6 @@
 import type {NextConfig} from 'next';
 import path from 'path';
 
-// Define a global symbol to ensure the initialization logic runs only once.
-const APP_INITIALIZED = Symbol.for('APP_INITIALIZED');
-
-/**
- * Initializes server-side components like AI flows and schedulers.
- * This function is designed to run only once per server start.
- */
-function initializeServer() {
-    // @ts-ignore
-    if (global[APP_INITIALIZED]) {
-        return;
-    }
-    // @ts-ignore
-    global[APP_INITIALIZED] = true;
-
-    console.log("Initializing server modules...");
-
-    // Use path.resolve to create absolute paths that work reliably in any environment.
-    const basePath = path.resolve(__dirname, './src');
-    
-    const { scheduleDailySignalChecks } = require(path.join(basePath, 'services/emailService'));
-    require(path.join(basePath, 'ai/flows/market-insight-analyzer'));
-    require(path.join(basePath, 'ai/flows/investment-strategy-generator'));
-    require(path.join(basePath, 'ai/flows/stock-signal-generator'));
-    require(path.join(basePath, 'ai/flows/subscribeToSignals'));
-    require(path.join(basePath, 'ai/flows/ticker-converter'));
-
-    // Start the daily email scheduler.
-    scheduleDailySignalChecks();
-    console.log('Server started and email scheduler is running.');
-}
-
-
 const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
@@ -62,11 +29,6 @@ const nextConfig: NextConfig = {
       ];
     }
     
-    // Run server initialization logic only on the server side.
-    if (isServer) {
-        initializeServer();
-    }
-
     return config;
   },
 };
