@@ -83,7 +83,7 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
     const dataMap = new Map(historicalData.map(d => [d.date, d.close]));
     const validSignals: ProcessedSignal[] = [];
     
-    // 1. Filter signals to only include those that exist in historicalData
+    // 1. Filter signals to only include those that exist in historicalData and have a valid price
     for(const signal of historicalSignals) {
         if(dataMap.has(signal.date)) {
             validSignals.push({
@@ -93,7 +93,10 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
         }
     }
     
-    // 2. Filter consecutive signals
+    // 2. Sort signals by date to ensure chronological order before filtering
+    validSignals.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    // 3. Filter consecutive signals of the same type
     if (validSignals.length === 0) return [];
 
     const filtered: ProcessedSignal[] = [];
@@ -171,4 +174,3 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
     </Card>
   );
 }
-
