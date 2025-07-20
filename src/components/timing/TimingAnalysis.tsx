@@ -123,6 +123,14 @@ export function TimingAnalysis() {
         signalResult.recommendedIndicators
       );
 
+      // Step 6: Inject AI's detailed rationale into the most recent signal for the tooltip
+      if (historicalSignals.length > 0) {
+        const lastSignal = historicalSignals.reduce((latest, current) => 
+            new Date(latest.date) > new Date(current.date) ? latest : current
+        );
+        lastSignal.rationale = signalResult.rationale; // Overwrite with AI's explanation
+      }
+
       setResult({ 
         ...signalResult, 
         ticker: finalTicker, 

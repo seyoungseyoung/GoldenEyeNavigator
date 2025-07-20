@@ -26,7 +26,6 @@ const SignalShape = (props: any) => {
     return null;
   }
   
-  // 사용자 요청: 매수(위 삼각형) = 초록, 매도(아래 삼각형) = 빨강
   const isBuySignal = payload.signal.includes('매수');
   const fill = isBuySignal ? '#22c55e' : '#ef4444'; // 초록(매수), 빨강(매도)
   const d = isBuySignal ? "M 0 -8 L 8 8 L -8 8 Z" : "M 0 8 L 8 -8 L -8 -8 Z";
