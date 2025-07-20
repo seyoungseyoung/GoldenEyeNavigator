@@ -6,7 +6,7 @@
  * - subscribeToSignals - A function to subscribe a user to stock signal notifications.
  */
 
-import { z } from 'genkit';
+import { z } from 'zod';
 import { addSubscription } from '@/services/subscriptionService';
 import { sendWelcomeEmail } from '@/services/emailService';
 

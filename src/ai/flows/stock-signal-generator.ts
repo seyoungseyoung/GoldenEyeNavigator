@@ -8,7 +8,7 @@
  * - StockSignalOutput - The return type for the generateStockSignal function.
  */
 
-import { z } from 'genkit';
+import { z } from 'zod';
 import { getHistoricalData } from '@/services/stockService';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
 

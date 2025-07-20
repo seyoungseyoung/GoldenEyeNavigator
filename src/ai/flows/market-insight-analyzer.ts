@@ -8,7 +8,7 @@
  * - MarketInsightOutput - The return type for the analyzeMarketInsight function.
  */
 
-import { z } from 'genkit';
+import { z } from 'zod';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
 
 const MarketInsightInputSchema = z.object({
