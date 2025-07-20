@@ -1,20 +1,21 @@
-# **App Name**: Golden Years Portfolio
+# **App Name**: GoldenLife Navigator
 
 ## Core Features:
 
-- Adaptive Questionnaire: Interactive questionnaire with approximately 20 tailored questions to assess the user's financial situation, risk tolerance, and investment preferences.
-- Strategy Generation: AI-powered tool to analyze questionnaire responses and generate a personalized asset allocation strategy, including recommended ETFs or stocks.
-- Portfolio View: Clear presentation of the recommended portfolio with detailed explanations of each asset's role and potential risks/rewards.
-- Automated Alerts: Alerts and notifications for key events, such as rebalancing opportunities or dividend payments. Notifications have explanations and reasoning.
-- Market Commentary: AI powered summarization of changes that may affect the user portfolio, along with explanations of how to react, so that the user has an opportunity to accept/reject suggested actions.
-- Portfolio Simulation: Simulated view of changes to the users portfolio, for user approval, prior to implementing the changes.
+- Landing Page: Landing page with a clear call to action, directing users to a personalized strategy.
+- Interactive Questionnaire: Multi-step questionnaire to gather user's investment preferences and financial situation.
+- Personalized Investment Strategy: AI-powered tool to analyze questionnaire responses and recommend asset allocation and investment options.
+- Strategy Display: Clear presentation of asset allocation pie chart, ETF/stock recommendations with rationale, and trading strategy overview.
+- AI Market Analysis: AI-driven insights on recent market news and trends, offering a summary, suggested actions, and supporting rationale. Users will input the latest trends and the tool provides the insights.
+- AI Stock Timing Analysis: Stock ticker input, strategy selector, and AI-powered technical indicator recommendations for buy/sell signals.
+- Email Notifications: Email alerts for buy/sell signals based on AI analysis, delivered via SMTP/Gmail.
 
 ## Style Guidelines:
 
-- Primary color: Soft gold (#D4AF37) to evoke a sense of financial security and prosperity. Gold is often associated with wealth and stability, aligning with the app's purpose of aiding retirement investments. It has a touch of elegance.
-- Background color: Light beige (#F5F5DC), providing a neutral and calming backdrop that complements the gold tones without causing distraction. It creates a sense of clarity.
-- Accent color: Muted olive green (#808000) for actionable elements and important notifications, subtly reinforcing growth and stability.
-- Clear, legible, sans-serif font for easy reading, ensuring the information is accessible to elderly users.
-- Simple, intuitive icons representing different asset classes and investment strategies.
-- Clean, spacious design with clear hierarchy for effortless navigation.
-- Gentle transitions and feedback animations for a smooth user experience.
+- Primary color: Gold (#FFD700) to represent wealth and financial success.
+- Background color: Black (#000000) to convey sophistication and trust.
+- Accent color: Dark gold (#B8860B), an analogous color used for interactive elements to create visual interest.
+- Headline font: 'Playfair', a serif with an elegant and high-end feel. Body text: 'PT Sans' for readability.
+- Use subtle, sophisticated icons related to finance and investment.
+- Ensure a clean, professional layout with clear sectioning for each feature.
+- Subtle transitions and animations to enhance user engagement and convey trustworthiness.

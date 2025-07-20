@@ -1,29 +1,89 @@
-
+'use client';
 import Link from 'next/link';
-import { Landmark, Mail } from 'lucide-react'; // Mail 아이콘 추가
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
-export default function Header() {
+// Using an inline SVG for the logo as requested for sophisticated iconography
+const LogoIcon = () => (
+  <svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="h-6 w-6 text-primary"
+  >
+    <path
+      d="M12 2L2 7V17L12 22L22 17V7L12 2Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 12L22 7"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 12V22"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 12L2 7"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+     <path
+      d="M17 4.5L7 9.5"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+
+export function Header() {
+  const pathname = usePathname();
+
+  const navLinks = [
+    { href: '/', label: '홈' },
+    { href: '/survey', label: '전략 설문' },
+    { href: '/strategy', label: '내 전략' },
+    { href: '/timing', label: '매매 타이밍' },
+  ];
+
   return (
-    <header className="bg-card border-b border-border sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
-          <Landmark size={28} />
-          <h1 className="text-2xl font-semibold">황금빛 노후 포트폴리오</h1>
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center">
+        <Link href="/" className="mr-6 flex items-center space-x-2">
+          <LogoIcon />
+          <span className="font-bold font-headline text-lg text-primary sm:inline-block">
+            GoldenLife Navigator
+          </span>
         </Link>
-        <nav className="flex items-center gap-4">
-          <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            홈
-          </Link>
-          <Link href="/questionnaire" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            설문지
-          </Link>
-          <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-            대시보드
-          </Link>
-          <Link href="/contact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center">
-            <Mail size={16} className="mr-1" /> {/* 문의하기 아이콘 추가 */}
-            문의하기
-          </Link>
+        <nav className="flex items-center gap-4 text-sm lg:gap-6 ml-auto">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                'transition-colors hover:text-foreground/80 font-medium',
+                pathname === link.href ? 'text-foreground' : 'text-foreground/60'
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
       </div>
     </header>

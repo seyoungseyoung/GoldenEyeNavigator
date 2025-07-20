@@ -1,0 +1,17 @@
+[
+  {
+    "email": "jsy830@naver.com",
+    "ticker": "MSFT",
+    "tradingStrategy": "과매도 구간에서 매수"
+  },
+  {
+    "email": "jsy830@naver.com",
+    "ticker": "AAPL",
+    "tradingStrategy": "장기적 관점의 저점 매수"
+  },
+  {
+    "email": "shpark101010@yonsei.ac.kr",
+    "ticker": "MSFT",
+    "tradingStrategy": "과매도 구간에서 매수"
+  }
+]
