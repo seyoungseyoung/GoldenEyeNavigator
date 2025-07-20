@@ -51,27 +51,19 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
         // AI가 JSON 외에 다른 텍스트를 포함하여 응답하는 경우가 있으므로,
         // 응답에서 JSON 객체만 안정적으로 추출합니다.
         try {
-            // Case 1: Handle JSON within a markdown code block (```json ... ```)
-            const jsonMatch = messageContent.match(/```json\s*([\s\S]*?)\s*```/);
-            if (jsonMatch && jsonMatch[1]) {
-                messageContent = jsonMatch[1];
-            }
-
-            // Case 2: Find the first '{' and last '}'
+            // Find the first '{' and last '}' to extract the JSON object
             const jsonStart = messageContent.indexOf('{');
             const jsonEnd = messageContent.lastIndexOf('}');
 
             if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-                messageContent = messageContent.substring(jsonStart, jsonEnd + 1);
-                return JSON.parse(messageContent);
+                const jsonString = messageContent.substring(jsonStart, jsonEnd + 1);
+                return JSON.parse(jsonString);
             } else {
-                // If no object is found, try to parse the whole content (might fail, handled by catch)
+                 // If no object is found, try to parse the whole content as a fallback.
                 return JSON.parse(messageContent);
             }
         } catch (e) {
-            // Parsing failed, return raw content for the caller to handle.
-            console.error("Failed to parse JSON from HyperClova X response, returning raw content.", messageContent);
-            // Instead of returning raw content which causes downstream errors, we'll re-throw a more specific error.
+            console.error("Failed to parse JSON from HyperClova X response. Raw content:", messageContent);
             throw new Error(`Failed to parse JSON from AI response. Raw content: ${messageContent}`);
         }
 
