@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 import path from 'path';
 
@@ -18,13 +19,15 @@ function initializeServer() {
 
     console.log("Initializing server modules...");
 
-    // Dynamically import modules to ensure they are loaded in the server environment.
-    const { scheduleDailySignalChecks } = require('./src/services/emailService');
-    require('./src/ai/flows/market-insight-analyzer');
-    require('./src/ai/flows/investment-strategy-generator');
-    require('./src/ai/flows/stock-signal-generator');
-    require('./src/ai/flows/subscribeToSignals');
-    require('./src/ai/flows/ticker-converter');
+    // Use path.resolve to create absolute paths that work reliably in any environment.
+    const basePath = path.resolve(__dirname, './src');
+    
+    const { scheduleDailySignalChecks } = require(path.join(basePath, 'services/emailService'));
+    require(path.join(basePath, 'ai/flows/market-insight-analyzer'));
+    require(path.join(basePath, 'ai/flows/investment-strategy-generator'));
+    require(path.join(basePath, 'ai/flows/stock-signal-generator'));
+    require(path.join(basePath, 'ai/flows/subscribeToSignals'));
+    require(path.join(basePath, 'ai/flows/ticker-converter'));
 
     // Start the daily email scheduler.
     scheduleDailySignalChecks();
