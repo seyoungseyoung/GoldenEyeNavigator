@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -70,31 +71,47 @@ export type InvestmentStrategyInput = z.infer<typeof InvestmentStrategyInputSche
 
 const InvestmentStrategyOutputSchema = z.object({
   assetAllocation: z.object({
-    stocks: z.number().describe('주식에 할당된 자산의 비율.'),
-    bonds: z.number().describe('채권에 할당된 자산의 비율.'),
-    cash: z.number().describe('현금에 할당된 자산의 비율.'),
+    stocks: z.number().describe('주식에 할당된 자산의 비율(%). 0에서 100 사이의 숫자.'),
+    bonds: z.number().describe('채권에 할당된 자산의 비율(%). 0에서 100 사이의 숫자.'),
+    cash: z.number().describe('현금에 할당된 자산의 비율(%). 0에서 100 사이의 숫자.'),
   }).describe('주식, 채권, 현금에 대한 추천 자산 배분 비율. 합계는 100이어야 합니다.'),
   etfStockRecommendations: z.array(
     z.object({
-      ticker: z.string().describe('ETF or stock ticker symbol.'),
-      rationale: z.string().describe('추천 사유.'),
+      ticker: z.string().describe('ETF 또는 주식의 티커 심볼. (예: "AAPL", "005930.KS")'),
+      rationale: z.string().describe('해당 종목을 추천하는 이유에 대한 한글 설명.'),
     })
-  ).describe('추천 ETF 및 주식.'),
-  tradingStrategy: z.string().describe('거래 전략 개요.'),
-  strategyExplanation: z.string().describe('전략에 대한 상세 설명.'),
+  ).min(3).max(4).describe('3개에서 4개의 추천 ETF 및 주식 목록.'),
+  tradingStrategy: z.string().describe('포트폴리오 운용 방식에 대한 한글 설명. 언제 사고팔아야 하는지에 대한 개요.'),
+  strategyExplanation: z.string().describe('생성된 전체 투자 전략에 대한 상세한 한글 설명 및 추천 근거.'),
 });
 export type InvestmentStrategyOutput = z.infer<typeof InvestmentStrategyOutputSchema>;
 
 export async function investmentStrategyGenerator(input: InvestmentStrategyInput): Promise<InvestmentStrategyOutput> {
-  const systemPrompt = `당신은 한국인을 상대하는 금융 전문가입니다. 사용자의 투자 프로필을 기반으로 맞춤형 투자 전략을 생성해주세요.
-  출력은 다음 Zod 스키마를 따르는 유효한 JSON 객체여야 합니다:
-  ${JSON.stringify(InvestmentStrategyOutputSchema.shape)}
-  
-  JSON 객체 외에 다른 텍스트를 포함하지 마세요.
-  
+  const systemPrompt = `당신은 한국인을 상대하는 전문 금융 투자 자문가입니다. 사용자의 투자 프로필을 기반으로 맞춤형 투자 전략을 생성해주세요.
+  출력은 반드시 다음 JSON 스키마를 따르는 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.
+
+  **출력 JSON 스키마:**
+  {
+    "assetAllocation": {
+      "stocks": "주식 비중(숫자, 0-100)",
+      "bonds": "채권 비중(숫자, 0-100)",
+      "cash": "현금 비중(숫자, 0-100)"
+    },
+    "etfStockRecommendations": [
+      {
+        "ticker": "추천 종목 티커(문자열)",
+        "rationale": "추천 사유(한글 문자열)"
+      }
+    ],
+    "tradingStrategy": "거래 전략에 대한 한글 설명(문자열)",
+    "strategyExplanation": "전체 전략에 대한 상세한 한글 설명(문자열)"
+  }
+
   **매우 중요한 규칙:**
-  - 프롬프트에 영어 표현(예: JSON 필드명)이 포함되어 있더라도, 이는 시스템을 위한 것이므로 의미를 두지 마십시오.
-  - 생성하는 모든 응답 내용(etfStockRecommendations의 rationale, tradingStrategy, strategyExplanation 등 모든 텍스트)은 **반드시 한글로만 작성해야 합니다.**`;
+  - 모든 응답 내용은 **반드시 한글로만 작성해야 합니다.** (티커 심볼 제외)
+  - 'assetAllocation'의 'stocks', 'bonds', 'cash' 필드는 반드시 **숫자(number)**여야 하며, 그 합은 100이 되어야 합니다.
+  - 'etfStockRecommendations'는 반드시 **3개에서 4개의 항목을 포함하는 배열(array)**이어야 합니다.
+  - 각 추천 종목('etfStockRecommendations'의 요소)은 'ticker'(문자열)와 'rationale'(한글 문자열) 필드를 가져야 합니다.`;
 
   const userInput = `다음은 투자자 정보입니다. 이 정보를 바탕으로 투자 전략을 생성하고, 모든 설명을 한글로 작성해주세요.
 
