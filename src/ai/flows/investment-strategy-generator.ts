@@ -10,6 +10,7 @@
  */
 import { z } from 'zod';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 const InvestmentStrategyInputSchema = z.object({
   retirementHorizon: z.enum([
@@ -87,25 +88,15 @@ const InvestmentStrategyOutputSchema = z.object({
 export type InvestmentStrategyOutput = z.infer<typeof InvestmentStrategyOutputSchema>;
 
 export async function investmentStrategyGenerator(input: InvestmentStrategyInput): Promise<InvestmentStrategyOutput> {
+  const jsonSchema = zodToJsonSchema(InvestmentStrategyOutputSchema, "InvestmentStrategyOutputSchema");
+
   const systemPrompt = `당신은 한국인을 상대하는 전문 금융 투자 자문가입니다. 사용자의 투자 프로필을 기반으로 맞춤형 투자 전략을 생성해주세요.
   출력은 반드시 다음 JSON 스키마를 따르는 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.
 
   **출력 JSON 스키마:**
-  {
-    "assetAllocation": {
-      "stocks": "주식 비중(숫자, 0-100)",
-      "bonds": "채권 비중(숫자, 0-100)",
-      "cash": "현금 비중(숫자, 0-100)"
-    },
-    "etfStockRecommendations": [
-      {
-        "ticker": "추천 종목 티커(문자열)",
-        "rationale": "추천 사유(한글 문자열)"
-      }
-    ],
-    "tradingStrategy": "거래 전략에 대한 한글 설명(문자열)",
-    "strategyExplanation": "전체 전략에 대한 상세한 한글 설명(문자열)"
-  }
+  \`\`\`json
+  ${JSON.stringify(jsonSchema, null, 2)}
+  \`\`\`
 
   **매우 중요한 규칙:**
   - 모든 응답 내용은 **반드시 한글로만 작성해야 합니다.** (티커 심볼 제외)
@@ -137,5 +128,20 @@ export async function investmentStrategyGenerator(input: InvestmentStrategyInput
       throw new Error("Received invalid data structure from AI.");
   }
   
-  return parsedResponse.data;
+  const data = parsedResponse.data;
+
+  // Normalize asset allocation to ensure it sums to 100
+  const { stocks, bonds, cash } = data.assetAllocation;
+  const total = stocks + bonds + cash;
+
+  if (total !== 100 && total > 0) {
+    console.warn(`Original allocation (${stocks}, ${bonds}, ${cash}) sum is ${total}. Normalizing...`);
+    data.assetAllocation.stocks = Math.round((stocks / total) * 100);
+    data.assetAllocation.bonds = Math.round((bonds / total) * 100);
+    // Adjust the last one to make sure the sum is exactly 100
+    data.assetAllocation.cash = 100 - data.assetAllocation.stocks - data.assetAllocation.bonds;
+    console.log(`Normalized allocation: ${data.assetAllocation.stocks}, ${data.assetAllocation.bonds}, ${data.assetAllocation.cash}`);
+  }
+  
+  return data;
 }
