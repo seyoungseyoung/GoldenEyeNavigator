@@ -13,10 +13,10 @@
 
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { getHistoricalData } from '@/services/stockService';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
 import { INDICATORS } from '@/services/indicatorService';
 
+// Input now includes historical data to help the AI make a better decision.
 const StockSignalInputSchema = z.object({
   ticker: z.string().describe('The ticker symbol of the stock.'),
   tradingStrategy: z
@@ -25,6 +25,8 @@ const StockSignalInputSchema = z.object({
     .describe(
       'The desired trading strategy/timing (e.g., short-term volatility, long-term buy and hold).'
     ),
+  // historicalData is passed to the AI for context but not part of the output schema for the prompt.
+  historicalData: z.array(z.any()).describe("Historical data for context."), 
 });
 export type StockSignalInput = z.infer<typeof StockSignalInputSchema>;
 
@@ -34,6 +36,7 @@ const IndicatorParameterSchema = z.object({
   params: z.record(z.any()).describe("A key-value object for the indicator's parameters. e.g., {'period': 14, 'overbought': 70, 'oversold': 30}")
 });
 
+// Output only contains the AI's recommendations, not data it received.
 const StockSignalOutputSchema = z.object({
   recommendedIndicators: z.array(IndicatorParameterSchema).min(3).max(3)
     .describe("An array of exactly 3 recommended technical indicators and their parameters."),
@@ -43,14 +46,6 @@ const StockSignalOutputSchema = z.object({
       '세 지표를 종합하여 판단한 **가장 최신 날짜의** 최종 매매 신호. "강한 매수", "매수", "보류", "매도", "강한 매도" 중 하나여야 합니다.'
     ),
   rationale: z.string().describe("A brief explanation in Korean of why these indicators were chosen and what the combined signal means for the most recent data point."),
-  historicalData: z.array(z.object({
-    date: z.string(),
-    open: z.number(),
-    high: z.number(),
-    low: z.number(),
-    close: z.number(),
-    volume: z.number(),
-  })).describe('Historical stock data for the last 252 days.'),
 });
 export type StockSignalOutput = z.infer<typeof StockSignalOutputSchema>;
 
@@ -58,14 +53,7 @@ export async function generateStockSignal(
   input: StockSignalInput
 ): Promise<StockSignalOutput> {
 
-  const historicalData = await getHistoricalData(input.ticker);
-  
-  if (historicalData.length === 0) {
-    throw new Error(`'${input.ticker}'에 대한 주가 데이터를 가져오는 데 실패했습니다.`);
-  }
-  
-  const outputSchemaForPrompt = StockSignalOutputSchema.omit({ historicalData: true });
-  const jsonSchema = zodToJsonSchema(outputSchemaForPrompt, "StockSignalOutputSchema");
+  const jsonSchema = zodToJsonSchema(StockSignalOutputSchema, "StockSignalOutputSchema");
 
   const systemPrompt = `당신은 한국인을 상대하는 주식 기술 분석 전문 AI 어시스턴트입니다.
 제공된 주식 티커와 거래 전략을 바탕으로, 가장 적합한 기술 지표 3개를 선택하고, 그 지표를 계산하는 데 필요한 매개변수(parameter)를 결정해야 합니다.
@@ -99,24 +87,30 @@ ${JSON.stringify(jsonSchema, null, 2)}
 - 모든 설명(\`rationale\`, \`fullName\`)은 한글로 작성해야 합니다.
 `;
 
+  // We only send the last few data points to the AI for context, to avoid large payloads.
+  const recentData = input.historicalData.slice(-10).map(d => ({date: d.date, close: d.close}));
   const userInput = `
 주식 티커: ${input.ticker}
 거래 전략: ${input.tradingStrategy || '지정되지 않음'}
+최신 주가 데이터 (참고용): ${JSON.stringify(recentData)}
 `;
 
   const messages: Message[] = [{ role: 'user', content: userInput }];
 
-  const signalResult = await callHyperClovaX(messages, systemPrompt);
+  try {
+    const signalResult = await callHyperClovaX(messages, systemPrompt);
+    const parsedResponse = StockSignalOutputSchema.safeParse(signalResult);
 
-  const parsedResponse = outputSchemaForPrompt.safeParse(signalResult);
+    if (!parsedResponse.success) {
+        console.error("HyperClova X response validation failed:", parsedResponse.error.flatten());
+        throw new Error("AI로부터 유효하지 않은 데이터 구조를 받았습니다.");
+    }
+    
+    return parsedResponse.data;
 
-  if (!parsedResponse.success) {
-      console.error("HyperClova X response validation failed:", parsedResponse.error);
-      throw new Error("Received invalid data structure from AI.");
+  } catch(error) {
+    console.error("Error in generateStockSignal flow:", error);
+    // Re-throw the error to be caught by the calling component
+    throw error;
   }
-  
-  return {
-    ...parsedResponse.data,
-    historicalData,
-  };
 }

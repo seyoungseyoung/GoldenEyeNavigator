@@ -1,7 +1,9 @@
+
 import nodemailer from 'nodemailer';
 import cron from 'node-cron';
 import { getAllSubscriptions } from './subscriptionService';
-import { generateStockSignal } from '@/ai/flows/stock-signal-generator';
+import { generateStockSignal, StockSignalOutput } from '@/ai/flows/stock-signal-generator';
+import { getHistoricalData } from './stockService';
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_SERVER,
@@ -54,7 +56,7 @@ export async function sendSignalEmail(
     email: string,
     ticker: string,
     signal: string,
-    indicators: string[]
+    indicators: StockSignalOutput['recommendedIndicators']
 ): Promise<void> {
     const mailOptions = {
         from: `"GoldenLife Navigator" <${process.env.SMTP_USERNAME}>`,
@@ -63,10 +65,10 @@ export async function sendSignalEmail(
         html: `
             <div style="font-family: sans-serif; padding: 20px; color: #333;">
                 <h2>${ticker} 오늘의 AI 매매 신호 분석</h2>
-                <p><b>종합 신호: <span style="font-weight: bold; color: ${signal.includes('매수') ? 'green' : 'red'};">${signal}</span></b></p>
+                <p><b>종합 신호: <span style="font-weight: bold; color: ${signal.includes('매수') ? 'blue' : 'red'};">${signal}</span></b></p>
                 <p>분석에 사용된 주요 지표:</p>
                 <ul>
-                    ${indicators.map(indicator => `<li>${indicator}</li>`).join('')}
+                    ${indicators.map(indicator => `<li>${indicator.fullName} (${indicator.name})</li>`).join('')}
                 </ul>
                 <p style="font-size: 12px; color: #777;">본 정보는 투자 참고용이며, 최종 투자 결정은 본인의 책임하에 이루어져야 합니다.</p>
             </div>
@@ -84,25 +86,35 @@ export async function sendSignalEmail(
 async function checkAndSendSignals() {
     console.log('Running daily signal check...');
     const subscriptions = await getAllSubscriptions();
+    // To avoid redundant API calls for the same ticker
+    const uniqueTickers = [...new Set(subscriptions.map(sub => sub.ticker))];
 
-    for (const sub of subscriptions) {
+    for (const ticker of uniqueTickers) {
         try {
+            console.log(`Processing ticker: ${ticker}`);
+            const historicalData = await getHistoricalData(ticker);
+            const subForTicker = subscriptions.find(s => s.ticker === ticker)!;
+
             const result = await generateStockSignal({
-                ticker: sub.ticker,
-                tradingStrategy: sub.tradingStrategy,
+                ticker: ticker,
+                tradingStrategy: subForTicker.tradingStrategy,
+                historicalData
             });
 
             // '보류' 신호가 아닐 경우에만 이메일 발송
-            if (result.signal !== '보류') {
-                await sendSignalEmail(
-                    sub.email,
-                    sub.ticker,
-                    result.signal,
-                    [result.indicator1, result.indicator2, result.indicator3]
-                );
+            if (result.finalSignal !== '보류') {
+                const subsToNotify = subscriptions.filter(s => s.ticker === ticker);
+                for(const sub of subsToNotify) {
+                    await sendSignalEmail(
+                        sub.email,
+                        ticker,
+                        result.finalSignal,
+                        result.recommendedIndicators
+                    );
+                }
             }
         } catch (error) {
-            console.error(`Failed to process signal for ${sub.ticker} for ${sub.email}:`, error);
+            console.error(`Failed to process signal for ${ticker}:`, error);
         }
     }
     console.log('Daily signal check finished.');

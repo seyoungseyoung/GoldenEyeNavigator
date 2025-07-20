@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { generateStockSignal, StockSignalOutput } from '@/ai/flows/stock-signal-generator';
 import { subscribeToSignals } from '@/ai/flows/subscribeToSignals';
 import { convertToTicker } from '@/ai/flows/ticker-converter';
+import { getHistoricalData, HistoricalDataPoint } from '@/services/stockService';
 import { Loader2, Wand2, Bell, Mail, AreaChart, Search } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { StockChartWithSignals, HistoricalSignal } from './StockChartWithSignals';
@@ -30,9 +31,9 @@ const emailFormSchema = z.object({
 const getSignalStyle = (signal: string) => {
     switch(signal) {
         case '강한 매수':
-            return 'text-green-400 border-green-400';
+            return 'text-blue-400 border-blue-400';
         case '매수':
-            return 'text-green-300 border-green-300';
+            return 'text-blue-300 border-blue-300';
         case '매도':
             return 'text-red-400 border-red-400';
         case '강한 매도':
@@ -45,6 +46,7 @@ const getSignalStyle = (signal: string) => {
 type AnalysisResult = StockSignalOutput & { 
   ticker: string; 
   tradingStrategy?: string;
+  historicalData: HistoricalDataPoint[];
   historicalSignals: HistoricalSignal[];
 };
 
@@ -88,18 +90,24 @@ export function TimingAnalysis() {
       }
       
       const ticker = conversionResult.ticker;
-      signalForm.setValue('query', ticker); // Update form with the actual ticker
+      signalForm.setValue('query', ticker);
       toast({ title: '티커 변환 완료', description: `'${values.query}' -> '${ticker}'로 변환되었습니다. 분석을 시작합니다.` });
 
-      // Step 2: AI selects indicators and parameters
+      // Step 2: Fetch historical data and validate the ticker
+      toast({ title: '주가 데이터 조회 중...', description: `${ticker}의 과거 데이터를 가져오고 있습니다.` });
+      const historicalData = await getHistoricalData(ticker);
+
+      // Step 3: AI selects indicators and parameters
+      toast({ title: 'AI 분석 중...', description: '최적의 기술 지표를 선택하고 있습니다.' });
       const signalResult = await generateStockSignal({
         ticker,
         tradingStrategy: values.tradingStrategy,
+        historicalData, // Pass data to AI
       });
 
-      // Step 3: Application calculates signals based on AI's strategy
+      // Step 4: Application calculates signals based on AI's strategy
       const historicalSignals = calculateSignals(
-        signalResult.historicalData,
+        historicalData,
         signalResult.recommendedIndicators
       );
 
@@ -107,15 +115,18 @@ export function TimingAnalysis() {
         ...signalResult, 
         ticker: ticker, 
         tradingStrategy: values.tradingStrategy,
+        historicalData,
         historicalSignals
       });
+      
+      toast({ title: '분석 완료!', description: `${ticker}에 대한 매매 신호 분석이 완료되었습니다.` });
 
     } catch (error: any) {
-      console.error('Error generating stock signal:', error);
+      console.error('Error during signal generation process:', error);
       toast({
         variant: "destructive",
-        title: "오류 발생",
-        description: error.message || "신호 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        title: "분석 중 오류 발생",
+        description: error.message || "분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
       });
     } finally {
       setIsSignalLoading(false);
@@ -127,7 +138,7 @@ export function TimingAnalysis() {
     setIsEmailLoading(true);
 
     try {
-        const indicatorsForEmail = result.recommendedIndicators.map(ind => `${ind.name} (${ind.fullName})`);
+        const indicatorsForEmail = result.recommendedIndicators.map(ind => `${ind.fullName} (${ind.name})`);
 
         const response = await subscribeToSignals({
             email: values.email,
@@ -175,7 +186,7 @@ export function TimingAnalysis() {
                     <FormItem>
                       <FormLabel>종목명 또는 티커</FormLabel>
                       <FormControl>
-                        <Input placeholder="예: 삼성전자, Apple, AAPL" {...field} />
+                        <Input placeholder="예: 삼성전자, Apple, META" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -221,6 +232,7 @@ export function TimingAnalysis() {
                     <div key={index} className="p-4 bg-background/50 rounded-lg">
                         <p className="text-sm text-muted-foreground">추천 지표 {index + 1}</p>
                         <p className="font-bold text-lg text-foreground">{indicator.fullName}</p>
+                        <p className="text-xs text-muted-foreground">({indicator.name})</p>
                     </div>
                 ))}
             </div>
