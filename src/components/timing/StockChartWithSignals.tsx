@@ -4,9 +4,8 @@
 import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot } from 'recharts';
-import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { format, parseISO } from 'date-fns';
-import type { StockSignalOutput as AIResult } from '@/ai/flows/stock-signal-generator';
+import type { HistoricalDataPoint } from '@/services/stockService';
 
 export type HistoricalSignal = {
     date: string;
@@ -16,11 +15,10 @@ export type HistoricalSignal = {
 };
 
 interface StockChartProps {
-    historicalData: AIResult['historicalData'];
+    historicalData: HistoricalDataPoint[];
     historicalSignals: HistoricalSignal[];
 }
 
-// 커스텀 ReferenceDot 렌더링을 위한 컴포넌트
 const SignalShape = (props: any) => {
   const { cx, cy, payload } = props;
 
@@ -28,10 +26,9 @@ const SignalShape = (props: any) => {
     return null;
   }
   
+  // 사용자 요청: 매수(위 삼각형) = 빨강, 매도(아래 삼각형) = 파랑
   const isBuySignal = payload.signal.includes('매수');
-
-  // 매수: 파란색 위쪽 삼각형, 매도: 빨간색 아래쪽 삼각형
-  const fill = isBuySignal ? '#3b82f6' : '#ef4444'; 
+  const fill = isBuySignal ? '#ef4444' : '#3b82f6'; // 빨강(매수), 파랑(매도)
   const d = isBuySignal ? "M 0 -8 L 8 8 L -8 8 Z" : "M 0 8 L 8 -8 L -8 -8 Z";
 
   return (
@@ -40,7 +37,6 @@ const SignalShape = (props: any) => {
     </g>
   );
 };
-
 
 export function StockChartWithSignals({ historicalData, historicalSignals }: StockChartProps) {
   const chartConfig = {
@@ -55,45 +51,50 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
       return { chartData: [], processedSignals: [] };
     }
 
-    const signalMap = new Map(historicalSignals.map(s => [s.date, s]));
+    const dataMap = new Map(historicalData.map(d => [d.date, d]));
     
-    const augmentedData = historicalData.map(d => ({
-        ...d,
-        signalInfo: signalMap.get(d.date) // 해당 날짜에 신호 정보 추가
-    }));
-    
-    // 연속 신호 필터링
-    const sortedSignals = [...historicalSignals].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    
+    // 1. 신호에 해당하는 날짜가 실제 데이터에 존재하는지 확인하고 close 가격 추가
+    const validSignals: HistoricalSignal[] = historicalSignals
+      .filter(s => dataMap.has(s.date))
+      .map(s => ({ ...s, close: dataMap.get(s.date)!.close }));
+
+    // 2. 날짜순으로 정렬
+    validSignals.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // 3. 연속된 동일 신호 필터링 (매수 -> 매도 -> 매수 ... 순으로)
     const filtered: HistoricalSignal[] = [];
     let lastSignalType: '매수' | '매도' | null = null;
-  
-    for (const signal of sortedSignals) {
-      const currentSignalType = signal.signal;
-  
-      if (currentSignalType !== lastSignalType) {
+    
+    for (const signal of validSignals) {
+      if (signal.signal !== lastSignalType) {
         filtered.push(signal);
-        lastSignalType = currentSignalType;
+        lastSignalType = signal.signal;
       }
     }
-
+    
+    // 4. 차트 데이터에 신호 정보 결합
+    const signalMap = new Map(filtered.map(s => [s.date, s]));
+    const augmentedData = historicalData.map(d => ({
+        ...d,
+        signalInfo: signalMap.get(d.date)
+    }));
+    
     return { chartData: augmentedData, processedSignals: filtered };
 
   }, [historicalData, historicalSignals]);
-
-  // 커스텀 툴팁
+  
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="p-2 text-sm bg-background/80 border border-border rounded-md shadow-lg">
+        <div className="p-2 text-sm bg-background/80 border border-border rounded-md shadow-lg text-foreground">
           <p className="font-bold">{format(parseISO(label), "yyyy-MM-dd")}</p>
-          <p style={{ color: chartConfig.close.color }}>
+          <p style={{ color: "hsl(var(--primary))" }}>
             {`종가: ${data.close.toFixed(2)}`}
           </p>
           {data.signalInfo && (
             <div className="mt-2 pt-2 border-t border-border/50">
-                <p className={`font-bold ${data.signalInfo.signal.includes('매수') ? 'text-blue-500' : 'text-red-500'}`}>
+                <p className={`font-bold ${data.signalInfo.signal.includes('매수') ? 'text-red-500' : 'text-blue-500'}`}>
                     {`${data.signalInfo.signal}: ${data.signalInfo.rationale}`}
                 </p>
             </div>
@@ -104,10 +105,8 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
     return null;
   };
 
-
   return (
     <Card className="bg-background/30 p-4 pt-8 text-center h-[400px]">
-      <ChartContainer config={chartConfig} className="w-full h-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
@@ -125,7 +124,7 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
             />
             <YAxis
               domain={['dataMin', 'dataMax']}
-              tickFormatter={(value) => `$${value.toFixed(2)}`}
+              tickFormatter={(value) => value.toFixed(2)}
               tickLine={false}
               axisLine={false}
               tickMargin={8}
@@ -155,7 +154,6 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
             ))}
           </LineChart>
         </ResponsiveContainer>
-      </ChartContainer>
     </Card>
   );
 }

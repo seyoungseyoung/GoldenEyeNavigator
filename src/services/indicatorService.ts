@@ -1,12 +1,10 @@
-
 import { RSI, MACD, BollingerBands, Stochastic } from 'technicalindicators';
 import type { StockSignalOutput } from '@/ai/flows/stock-signal-generator';
 import type { HistoricalSignal } from '@/components/timing/StockChartWithSignals';
+import type { HistoricalDataPoint } from './stockService';
 
-type HistoricalDataPoint = StockSignalOutput['historicalData'][0];
 type RecommendedIndicator = StockSignalOutput['recommendedIndicators'][0];
 
-// Define the names of supported indicators
 export const INDICATORS = ["RSI", "MACD", "BollingerBands", "Stochastic"] as const;
 
 /**
@@ -15,7 +13,7 @@ export const INDICATORS = ["RSI", "MACD", "BollingerBands", "Stochastic"] as con
  * @param indicators The indicators and their parameters chosen by the AI.
  * @returns An array of historical signals.
  */
-export function calculateSignals(data: HistoricalDataPoint[], indicators: RecommendedIndicator[]): HistoricalSignal[] {
+export function calculateSignals(data: HistoricalDataPoint[], indicators: RecommendedIndicator[]): Omit<HistoricalSignal, 'close'>[] {
     const signals: Omit<HistoricalSignal, 'close'>[] = [];
     const closePrices = data.map(d => d.close);
 
@@ -35,23 +33,8 @@ export function calculateSignals(data: HistoricalDataPoint[], indicators: Recomm
                 break;
         }
     });
-
-    // Combine signals from all indicators and add the close price for each signal date
-    const dataMap = new Map(data.map(d => [d.date, d.close]));
-    const combinedSignals: HistoricalSignal[] = [];
-
-    signals.forEach(signal => {
-        if (dataMap.has(signal.date)) {
-            combinedSignals.push({
-                ...signal,
-                close: dataMap.get(signal.date)!
-            });
-        }
-    });
-
-    // Return unique signals sorted by date
-    const uniqueSignals = Array.from(new Map(combinedSignals.map(s => [s.date, s])).values());
-    return uniqueSignals.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    return signals;
 }
 
 // --- Individual Indicator Calculation Functions ---
@@ -92,11 +75,9 @@ function calculateMACDSignals(data: HistoricalDataPoint[], closePrices: number[]
         const dataIndex = i + slowPeriod -1;
 
         if (dataIndex < data.length) {
-             // Buy signal: MACD line crosses above the signal line
             if (prev.MACD < prev.signal && curr.MACD > curr.signal) {
                 signals.push({ date: data[dataIndex].date, signal: '매수', rationale: 'MACD선이 시그널선을 상향 돌파했습니다 (골든 크로스).' });
             }
-            // Sell signal: MACD line crosses below the signal line
             else if (prev.MACD > prev.signal && curr.MACD < curr.signal) {
                 signals.push({ date: data[dataIndex].date, signal: '매도', rationale: 'MACD선이 시그널선을 하향 돌파했습니다 (데드 크로스).' });
             }
@@ -126,32 +107,31 @@ function calculateBollingerBandsSignals(data: HistoricalDataPoint[], closePrices
 
 function calculateStochasticSignals(data: HistoricalDataPoint[], params: any): Omit<HistoricalSignal, 'close'>[] {
     const { period = 14, signalPeriod = 3 } = params;
-    const highPrices = data.map(d => d.high); 
-    const lowPrices = data.map(d => d.low);
-    const closePrices = data.map(d => d.close);
+    const stochInput = {
+        high: data.map(d => d.high),
+        low: data.map(d => d.low),
+        close: data.map(d => d.close),
+        period: period,
+        signalPeriod: signalPeriod,
+    };
     
-    const stochValues = Stochastic.calculate({
-        high: highPrices,
-        low: lowPrices,
-        close: closePrices,
-        period,
-        signalPeriod,
-    });
+    const stochValues = Stochastic.calculate(stochInput);
     const signals: Omit<HistoricalSignal, 'close'>[] = [];
 
     for (let i = 1; i < stochValues.length; i++) {
         const prev = stochValues[i - 1];
         const curr = stochValues[i];
-        const dataIndex = i + period -1;
+        const dataIndex = i + period - 1 + (stochInput.close.length - stochValues.length);
+
 
         if (dataIndex < data.length) {
-             // Buy signal: %K crosses above %D in the oversold region
-            if (prev.k < 20 && prev.d < 20 && curr.k > curr.d) {
-                signals.push({ date: data[dataIndex].date, signal: '매수', rationale: `스토캐스틱 %K선이 과매도 구간에서 %D선을 상향 돌파했습니다.` });
+             const kVal = curr.k.toFixed(2);
+             const dVal = curr.d.toFixed(2);
+             if (prev.k < 20 && prev.d < 20 && curr.k > curr.d) {
+                signals.push({ date: data[dataIndex].date, signal: '매수', rationale: `스토캐스틱 %K선(${kVal})이 과매도 구간에서 %D선(${dVal})을 상향 돌파했습니다.` });
             }
-            // Sell signal: %K crosses below %D in the overbought region
             else if (prev.k > 80 && prev.d > 80 && curr.k < curr.d) {
-                signals.push({ date: data[dataIndex].date, signal: '매도', rationale: `스토캐스틱 %K선이 과매수 구간에서 %D선을 하향 돌파했습니다.` });
+                signals.push({ date: data[dataIndex].date, signal: '매도', rationale: `스토캐스틱 %K선(${kVal})이 과매수 구간에서 %D선(${dVal})을 하향 돌파했습니다.` });
             }
         }
     }
