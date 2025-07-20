@@ -12,13 +12,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { generateStockSignal, StockSignalOutput } from '@/ai/flows/stock-signal-generator';
 import { subscribeToSignals } from '@/ai/flows/subscribeToSignals';
-import { Loader2, Wand2, Bell, Mail, AreaChart } from 'lucide-react';
+import { convertToTicker } from '@/ai/flows/ticker-converter';
+import { Loader2, Wand2, Bell, Mail, AreaChart, Search } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { StockChartWithSignals, HistoricalSignal } from './StockChartWithSignals';
 import { calculateSignals } from '@/services/indicatorService';
 
 const signalFormSchema = z.object({
-  ticker: z.string().min(1, { message: '티커를 입력해주세요.' }).toUpperCase(),
+  query: z.string().min(1, { message: '종목명 또는 티커를 입력해주세요.' }),
   tradingStrategy: z.string().optional(),
 });
 
@@ -56,7 +57,7 @@ export function TimingAnalysis() {
   const signalForm = useForm<z.infer<typeof signalFormSchema>>({
     resolver: zodResolver(signalFormSchema),
     defaultValues: {
-      ticker: '',
+      query: '',
       tradingStrategy: '',
     },
   });
@@ -71,11 +72,32 @@ export function TimingAnalysis() {
   async function onSignalSubmit(values: z.infer<typeof signalFormSchema>) {
     setIsSignalLoading(true);
     setResult(null);
-    try {
-      // Step 1: AI selects indicators and parameters
-      const signalResult = await generateStockSignal(values);
 
-      // Step 2: Application calculates signals based on AI's strategy
+    try {
+      // Step 1: Convert user query to a valid ticker
+      toast({ title: '티커 변환 중...', description: `'${values.query}'에 대한 티커를 찾고 있습니다.` });
+      const conversionResult = await convertToTicker({ query: values.query });
+
+      if (!conversionResult.success || !conversionResult.ticker) {
+        toast({
+          variant: "destructive",
+          title: "티커 변환 실패",
+          description: conversionResult.reason || "입력한 종목의 티커를 찾을 수 없습니다.",
+        });
+        return;
+      }
+      
+      const ticker = conversionResult.ticker;
+      signalForm.setValue('query', ticker); // Update form with the actual ticker
+      toast({ title: '티커 변환 완료', description: `'${values.query}' -> '${ticker}'로 변환되었습니다. 분석을 시작합니다.` });
+
+      // Step 2: AI selects indicators and parameters
+      const signalResult = await generateStockSignal({
+        ticker,
+        tradingStrategy: values.tradingStrategy,
+      });
+
+      // Step 3: Application calculates signals based on AI's strategy
       const historicalSignals = calculateSignals(
         signalResult.historicalData,
         signalResult.recommendedIndicators
@@ -83,7 +105,7 @@ export function TimingAnalysis() {
 
       setResult({ 
         ...signalResult, 
-        ticker: values.ticker, 
+        ticker: ticker, 
         tradingStrategy: values.tradingStrategy,
         historicalSignals
       });
@@ -140,7 +162,7 @@ export function TimingAnalysis() {
       <Card className="bg-card/50 border-border/50">
         <CardHeader>
             <CardTitle>AI 기술 지표 추천</CardTitle>
-            <CardDescription>분석하고 싶은 주식의 티커와 매매 전략을 입력하세요.</CardDescription>
+            <CardDescription>분석하고 싶은 주식의 이름(예: 애플) 또는 티커(예: AAPL)와 매매 전략을 입력하세요.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...signalForm}>
@@ -148,12 +170,12 @@ export function TimingAnalysis() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={signalForm.control}
-                  name="ticker"
+                  name="query"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>주식 티커</FormLabel>
+                      <FormLabel>종목명 또는 티커</FormLabel>
                       <FormControl>
-                        <Input placeholder="예: AAPL, GOOGL" {...field} />
+                        <Input placeholder="예: 삼성전자, Apple, AAPL" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -178,7 +200,7 @@ export function TimingAnalysis() {
                   {isSignalLoading ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> 분석 중...</>
                   ) : (
-                    <><Wand2 className="mr-2 h-4 w-4" /> AI 기술 지표 추천받기</>
+                    <><Search className="mr-2 h-4 w-4" /> AI 분석 시작하기</>
                   )}
                 </Button>
               </div>
@@ -258,4 +280,3 @@ export function TimingAnalysis() {
     </div>
   );
 }
-

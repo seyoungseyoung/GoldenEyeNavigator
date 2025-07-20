@@ -61,9 +61,7 @@ export async function generateStockSignal(
   const historicalData = await getHistoricalData(input.ticker);
   
   if (historicalData.length === 0) {
-    // This case should ideally not be hit if getHistoricalData throws an error.
-    // Kept as a fallback.
-    throw new Error('주가 데이터를 가져오는 데 실패했습니다.');
+    throw new Error(`'${input.ticker}'에 대한 주가 데이터를 가져오는 데 실패했습니다.`);
   }
   
   const outputSchemaForPrompt = StockSignalOutputSchema.omit({ historicalData: true });
@@ -122,4 +120,3 @@ ${JSON.stringify(jsonSchema, null, 2)}
     historicalData,
   };
 }
-
