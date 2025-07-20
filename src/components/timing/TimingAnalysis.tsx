@@ -92,7 +92,7 @@ export function TimingAnalysis() {
           toast({
             variant: "destructive",
             title: "티커 변환 실패",
-            description: conversionResult.reason || "입력한 종목의 티커를 찾을 수 없습니다.",
+            description: `AI가 '${values.query}'에 대한 티커를 찾지 못했습니다. 더 정확한 회사명이나 티커를 입력해주세요.`,
           });
           setIsSignalLoading(false);
           return;
@@ -102,7 +102,17 @@ export function TimingAnalysis() {
         toast({ title: '티커 변환 완료', description: `'${values.query}' -> '${finalTicker}'로 변환되었습니다. 데이터를 다시 조회합니다.` });
         
         // Step 3: Fetch data again with the converted ticker
-        historicalData = await getHistoricalData(finalTicker);
+        try {
+            historicalData = await getHistoricalData(finalTicker);
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "데이터 조회 실패",
+                description: `AI가 변환한 티커 '${finalTicker}'로도 데이터를 찾을 수 없습니다. 더 정확한 회사명이나 티커를 입력해주세요.`
+            });
+            setIsSignalLoading(false);
+            return;
+        }
       }
 
       // If we reach here, we have a valid ticker and historical data.
