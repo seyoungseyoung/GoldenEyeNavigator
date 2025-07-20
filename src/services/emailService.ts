@@ -114,15 +114,15 @@ async function checkAndSendSignals() {
  * Runs every day at 5:00 AM KST.
  */
 export function scheduleDailySignalChecks() {
-    // KST is UTC+9. So, 5:00 KST is 20:00 UTC of the previous day.
     // Cron format: 'Minute Hour Day-of-Month Month Day-of-Week'
-    cron.schedule('0 20 * * *', () => {
+    // Set to run at 5:00 AM in Seoul's timezone.
+    cron.schedule('0 5 * * *', () => {
         console.log('Scheduler triggered for KST 05:00.');
         checkAndSendSignals();
     }, {
         scheduled: true,
-        timezone: "UTC"
+        timezone: "Asia/Seoul"
     });
 
-    console.log('Email scheduler started. Daily checks at 05:00 KST (20:00 UTC).');
+    console.log('Email scheduler started. Daily checks at 05:00 KST.');
 }

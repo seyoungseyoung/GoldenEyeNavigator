@@ -49,8 +49,15 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
         let messageContent = result.result.message.content;
         
         // AI가 JSON 외에 다른 텍스트를 포함하여 응답하는 경우가 있으므로,
-        // 응답에서 JSON 객체만 추출합니다.
+        // 응답에서 JSON 객체만 안정적으로 추출합니다.
         try {
+            // Case 1: Handle JSON within a markdown code block (```json ... ```)
+            const jsonMatch = messageContent.match(/```json\s*([\s\S]*?)\s*```/);
+            if (jsonMatch && jsonMatch[1]) {
+                messageContent = jsonMatch[1];
+            }
+
+            // Case 2: Find the first '{' and last '}'
             const jsonStart = messageContent.indexOf('{');
             const jsonEnd = messageContent.lastIndexOf('}');
 
@@ -58,11 +65,11 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
                 messageContent = messageContent.substring(jsonStart, jsonEnd + 1);
                 return JSON.parse(messageContent);
             } else {
-                // JSON 객체를 찾지 못하면 원래 내용을 파싱 시도
+                // If no object is found, try to parse the whole content (might fail, handled by catch)
                 return JSON.parse(messageContent);
             }
         } catch (e) {
-            // 파싱에 실패하면 원본 내용을 반환 (오류 처리는 호출 측에서)
+            // Parsing failed, return raw content for the caller to handle.
             console.error("Failed to parse JSON from HyperClova X response, returning raw content.", messageContent);
             return messageContent; 
         }

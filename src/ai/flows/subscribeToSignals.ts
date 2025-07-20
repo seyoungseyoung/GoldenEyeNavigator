@@ -9,29 +9,28 @@
 import { z } from 'genkit';
 import { addSubscription } from '@/services/subscriptionService';
 import { sendWelcomeEmail } from '@/services/emailService';
-import { generateStockSignal } from './stock-signal-generator';
 
 const SubscriptionInputSchema = z.object({
     email: z.string().email().describe('The email address of the user.'),
     ticker: z.string().describe('The stock ticker symbol to subscribe to.'),
     tradingStrategy: z.string().optional().describe('The trading strategy for the analysis.'),
+    indicators: z.array(z.string()).min(3).max(3).describe('The list of indicators used for the analysis.')
 });
 type SubscriptionInput = z.infer<typeof SubscriptionInputSchema>;
 
 export async function subscribeToSignals(input: SubscriptionInput): Promise<{ success: boolean; message: string }> {
     try {
-        // First, generate the signal to get the indicators
-        const signalResult = await generateStockSignal({
+        // The indicators are now passed directly, so no need to call generateStockSignal again.
+
+        // Add subscription to the JSON file
+        await addSubscription({
+            email: input.email,
             ticker: input.ticker,
             tradingStrategy: input.tradingStrategy
         });
-        const indicators = [signalResult.indicator1, signalResult.indicator2, signalResult.indicator3];
-
-        // Add subscription to the JSON file
-        await addSubscription(input);
 
         // Send a welcome email with the specific indicators
-        await sendWelcomeEmail(input.email, input.ticker, indicators);
+        await sendWelcomeEmail(input.email, input.ticker, input.indicators);
 
         return {
             success: true,

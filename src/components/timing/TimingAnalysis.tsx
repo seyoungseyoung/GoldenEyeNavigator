@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { generateStockSignal, StockSignalOutput } from '@/ai/flows/stock-signal-generator';
 import { subscribeToSignals } from '@/ai/flows/subscribeToSignals';
-import { Loader2, Bot, Wand2, Bell, Mail, AreaChart } from 'lucide-react';
+import { Loader2, Wand2, Bell, Mail, AreaChart } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -89,6 +89,7 @@ export function TimingAnalysis() {
             email: values.email,
             ticker: result.ticker,
             tradingStrategy: result.tradingStrategy,
+            indicators: [result.indicator1, result.indicator2, result.indicator3],
         });
 
         toast({
