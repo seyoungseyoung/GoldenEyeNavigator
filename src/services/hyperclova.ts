@@ -21,8 +21,12 @@ export interface Message {
     content: string;
 }
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 500; // 500ms
+
 /**
  * Calls the HyperClova X API with the given messages and system prompt.
+ * Implements a retry mechanism to handle transient errors.
  * @param messages An array of messages to send to the model.
  * @param systemPrompt The system prompt to guide the model's behavior.
  * @returns The content of the assistant's response.
@@ -43,35 +47,45 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
         ],
     };
 
-    try {
-        const response = await axios.post(URL, payload, { headers });
-        const result = response.data;
-        let messageContent = result.result.message.content;
-        
-        // AI가 JSON 외에 다른 텍스트를 포함하여 응답하는 경우가 있으므로,
-        // 응답에서 JSON 객체만 안정적으로 추출합니다.
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
-            // Find the first '{' and last '}' to extract the JSON object
-            const jsonStart = messageContent.indexOf('{');
-            const jsonEnd = messageContent.lastIndexOf('}');
+            const response = await axios.post(URL, payload, { headers });
+            const result = response.data;
+            let messageContent = result.result.message.content;
+            
+            // AI가 JSON 외에 다른 텍스트를 포함하여 응답하는 경우가 있으므로,
+            // 응답에서 JSON 객체만 안정적으로 추출합니다.
+            try {
+                const jsonStart = messageContent.indexOf('{');
+                const jsonEnd = messageContent.lastIndexOf('}');
 
-            if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-                const jsonString = messageContent.substring(jsonStart, jsonEnd + 1);
-                return JSON.parse(jsonString);
-            } else {
-                 // If no object is found, try to parse the whole content as a fallback.
-                return JSON.parse(messageContent);
+                if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+                    const jsonString = messageContent.substring(jsonStart, jsonEnd + 1);
+                    return JSON.parse(jsonString);
+                } else {
+                    return JSON.parse(messageContent);
+                }
+            } catch (e) {
+                console.error("Failed to parse JSON from HyperClova X response. Raw content:", messageContent);
+                // JSON 파싱 실패는 재시도하지 않고 즉시 에러를 던집니다.
+                throw new Error(`Failed to parse JSON from AI response. Raw content: ${messageContent}`);
             }
-        } catch (e) {
-            console.error("Failed to parse JSON from HyperClova X response. Raw content:", messageContent);
-            throw new Error(`Failed to parse JSON from AI response. Raw content: ${messageContent}`);
-        }
+        // This catch block handles network errors or API server errors (e.g., 5xx)
+        } catch (error) {
+            console.error(`Attempt ${attempt} failed for HyperClova X API call:`, error);
+            if (axios.isAxiosError(error)) {
+                 // JSON 파싱 에러는 위에서 잡히므로 여기서는 주로 네트워크/서버 에러입니다.
+                console.error("Response data:", error.response?.data);
+            }
 
-    } catch (error) {
-        console.error("Error calling HyperClova X API:", error);
-        if (axios.isAxiosError(error)) {
-            console.error("Response data:", error.response?.data);
+            if (attempt === MAX_RETRIES) {
+                // 마지막 시도에서도 실패하면 최종적으로 에러를 던집니다.
+                throw new Error("Failed to get response from HyperClova X API after multiple retries.");
+            }
+            // 재시도 전에 잠시 대기합니다.
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         }
-        throw new Error("Failed to get response from HyperClova X API.");
     }
+    // 루프가 비정상적으로 종료될 경우를 대비한 최종 에러 처리
+    throw new Error("Failed to get response from HyperClova X API.");
 }
