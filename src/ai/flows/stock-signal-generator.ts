@@ -45,7 +45,11 @@ const StockSignalOutputSchema = z.object({
   rationale: z.string().describe("A brief explanation in Korean of why these indicators were chosen and what the combined signal means for the most recent data point."),
   historicalData: z.array(z.object({
     date: z.string(),
+    open: z.number(),
+    high: z.number(),
+    low: z.number(),
     close: z.number(),
+    volume: z.number(),
   })).describe('Historical stock data for the last 252 days.'),
 });
 export type StockSignalOutput = z.infer<typeof StockSignalOutputSchema>;
@@ -57,6 +61,8 @@ export async function generateStockSignal(
   const historicalData = await getHistoricalData(input.ticker);
   
   if (historicalData.length === 0) {
+    // This case should ideally not be hit if getHistoricalData throws an error.
+    // Kept as a fallback.
     throw new Error('주가 데이터를 가져오는 데 실패했습니다.');
   }
   
@@ -78,7 +84,7 @@ export async function generateStockSignal(
 
 **작업:**
 1.  주어진 티커와 전략에 가장 적합한 **기술 지표 3개를 위 목록에서 선택**합니다.
-2.  선택된 각 지표에 대해 **최적의 매개변수(`params`)를 결정**합니다.
+2.  선택된 각 지표에 대해 **최적의 매개변수(\`params\`)를 결정**합니다.
 3.  3개의 지표를 종합적으로 분석하여 **가장 최신 데이터 기준**의 최종 매매 신호(\`finalSignal\`)와 그 근거(\`rationale\`)를 생성합니다.
 
 **출력은 반드시 다음 JSON 스키마를 따르는 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.**
@@ -116,3 +122,4 @@ ${JSON.stringify(jsonSchema, null, 2)}
     historicalData,
   };
 }
+

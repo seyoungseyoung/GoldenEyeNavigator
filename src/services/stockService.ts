@@ -40,12 +40,23 @@ export async function getHistoricalData(ticker: string): Promise<HistoricalDataP
         close: parseFloat(item.close!.toFixed(2)),
         volume: item.volume!,
       }));
+    
+    // If formattedData is empty after a successful API call, it might be a delisted or invalid ticker.
+    if(formattedData.length === 0){
+        throw new Error(`'${ticker}'에 대한 주가 데이터를 찾을 수 없습니다. 티커를 확인해주세요.`);
+    }
 
     // Return the most recent 252 data points
     return formattedData.slice(-252);
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Failed to fetch historical data for ${ticker}:`, error);
-    // For this app, we'll return an empty array to prevent a hard crash on the UI
-    return [];
+    
+    // Check if the error is a 404 Not Found, which usually indicates an invalid ticker
+    if (error.code === '404 Not Found' || (error.message && error.message.includes('404'))) {
+      throw new Error(`'${ticker}'는 존재하지 않는 티커입니다. 다시 확인해주세요.`);
+    }
+    
+    throw new Error(`'${ticker}'의 주가 데이터 조회 중 오류가 발생했습니다: ${error.message}`);
   }
 }
+

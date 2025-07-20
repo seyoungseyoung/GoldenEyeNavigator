@@ -88,12 +88,12 @@ export function TimingAnalysis() {
         historicalSignals
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating stock signal:', error);
       toast({
         variant: "destructive",
         title: "오류 발생",
-        description: "신호 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        description: error.message || "신호 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
       });
     } finally {
       setIsSignalLoading(false);
@@ -123,12 +123,12 @@ export function TimingAnalysis() {
         if(response.success) {
             emailForm.reset();
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error subscribing to signals:', error);
         toast({
             variant: "destructive",
             title: "오류 발생",
-            description: "알림 신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+            description: error.message || "알림 신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
         });
     } finally {
         setIsEmailLoading(false);
@@ -198,7 +198,7 @@ export function TimingAnalysis() {
                 {result.recommendedIndicators.map((indicator, index) => (
                     <div key={index} className="p-4 bg-background/50 rounded-lg">
                         <p className="text-sm text-muted-foreground">추천 지표 {index + 1}</p>
-                        <p className="font-bold text-lg text-foreground">{indicator.name} <span className="text-sm">({indicator.fullName})</span></p>
+                        <p className="font-bold text-lg text-foreground">{indicator.fullName}</p>
                     </div>
                 ))}
             </div>
@@ -258,3 +258,4 @@ export function TimingAnalysis() {
     </div>
   );
 }
+
