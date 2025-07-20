@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -13,9 +14,11 @@ import { generateStockSignal, StockSignalOutput } from '@/ai/flows/stock-signal-
 import { subscribeToSignals } from '@/ai/flows/subscribeToSignals';
 import { Loader2, Wand2, Bell, Mail, AreaChart } from 'lucide-react';
 import { Separator } from '../ui/separator';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '../ui/badge';
 
 const signalFormSchema = z.object({
   ticker: z.string().min(1, { message: '티커를 입력해주세요.' }).toUpperCase(),
@@ -40,6 +43,71 @@ const getSignalStyle = (signal: string) => {
             return 'text-gray-400 border-gray-400';
     }
 }
+
+// 연속된 신호를 필터링하는 함수
+const filterConsecutiveSignals = (signals: StockSignalOutput['historicalSignals']) => {
+  if (!signals || signals.length === 0) return [];
+  
+  const filtered: StockSignalOutput['historicalSignals'] = [];
+  let lastSignalType: 'buy' | 'sell' | null = null;
+
+  for (const signal of signals) {
+    if (signal.signal === '보류') continue;
+
+    const currentSignalType = signal.signal.includes('매수') ? 'buy' : 'sell';
+
+    if (currentSignalType !== lastSignalType) {
+      filtered.push(signal);
+      lastSignalType = currentSignalType;
+    }
+  }
+  return filtered;
+};
+
+// 커스텀 ReferenceDot 렌더링
+const SignalDot = (props: any) => {
+  const { cx, cy, payload } = props;
+  const isBuySignal = payload.signal.includes('매수');
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <svg x={cx - 10} y={cy - (isBuySignal ? 20 : 0)} width="20" height="20" viewBox="0 0 24 24" fill={isBuySignal ? "hsl(var(--primary))" : "hsl(var(--destructive))"} style={{cursor: 'pointer'}}>
+          {isBuySignal ? (
+            <path d="M12 2L2 22h20L12 2z" /> // Upward Triangle
+          ) : (
+            <path d="M12 22L2 2h20L12 22z" /> // Downward Triangle
+          )}
+        </svg>
+      </PopoverTrigger>
+      <PopoverContent className="w-80">
+        <div className="grid gap-4">
+          <div className="space-y-2">
+            <h4 className="font-medium leading-none">신호 상세 정보</h4>
+            <p className="text-sm text-muted-foreground">
+              {payload.date}에 발생한 신호 분석입니다.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <div className="grid grid-cols-3 items-center gap-4">
+              <span className="font-semibold">날짜</span>
+              <span className="col-span-2">{payload.date}</span>
+            </div>
+            <div className="grid grid-cols-3 items-center gap-4">
+              <span className="font-semibold">신호</span>
+              <Badge variant={isBuySignal ? "default" : "destructive"} className="col-span-2">{payload.signal}</Badge>
+            </div>
+            <div className="grid grid-cols-3 items-start gap-4">
+               <span className="font-semibold pt-1">근거</span>
+               <p className="col-span-2 text-sm text-muted-foreground">{payload.rationale}</p>
+            </div>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 
 export function TimingAnalysis() {
   const [isSignalLoading, setIsSignalLoading] = useState(false);
@@ -119,6 +187,8 @@ export function TimingAnalysis() {
       color: "hsl(var(--primary))",
     },
   };
+  
+  const processedSignals = result ? filterConsecutiveSignals(result.historicalSignals) : [];
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -187,7 +257,7 @@ export function TimingAnalysis() {
                 ))}
             </div>
             <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground mb-2">종합 매매 신호</p>
+                <p className="text-sm text-muted-foreground mb-2">종합 매매 신호 (최신)</p>
                 <p className={`font-bold text-3xl font-headline border-2 rounded-full inline-block px-6 py-2 ${getSignalStyle(result.signal)}`}>
                     {result.signal}
                 </p>
@@ -196,20 +266,20 @@ export function TimingAnalysis() {
             <Separator className="bg-border/40 my-6" />
 
             <div className="space-y-4">
-                <h3 className="font-bold text-xl flex items-center gap-2"><AreaChart className="h-5 w-5 text-accent"/>주가 차트 분석</h3>
-                 <Card className="bg-background/30 p-4 text-center h-[400px]">
+                <h3 className="font-bold text-xl flex items-center gap-2"><AreaChart className="h-5 w-5 text-accent"/>주가 차트 분석 (과거 신호 포함)</h3>
+                 <Card className="bg-background/30 p-4 pt-8 text-center h-[400px]">
                   <ChartContainer config={chartConfig} className="w-full h-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart
                         data={result.historicalData}
                         margin={{
-                          top: 5, right: 20, left: -10, bottom: 5,
+                          top: 20, right: 20, left: -10, bottom: 5,
                         }}
                       >
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.5)" />
                         <XAxis
                           dataKey="date"
-                          tickFormatter={(value) => format(new Date(value), "yy-MM-dd")}
+                          tickFormatter={(value) => format(parseISO(value), "yy-MM-dd")}
                           tickLine={false}
                           axisLine={false}
                           tickMargin={8}
@@ -225,7 +295,7 @@ export function TimingAnalysis() {
                           cursor={true}
                           content={<ChartTooltipContent
                             indicator="dot"
-                            labelFormatter={(label) => format(new Date(label), "yyyy-MM-dd")}
+                            labelFormatter={(label) => format(parseISO(label), "yyyy-MM-dd")}
                           />}
                         />
                         <Legend />
@@ -237,6 +307,20 @@ export function TimingAnalysis() {
                           dot={false}
                           name="종가"
                         />
+                        {processedSignals.map((signal, index) => (
+                            <ReferenceDot 
+                                key={index} 
+                                x={signal.date} 
+                                y={result.historicalData.find(d => d.date === signal.date)?.close}
+                                r={10} 
+                                shape={<SignalDot />}
+                                ifOverflow="extendDomain"
+                                yAxisId={0}
+                                xAxisId={0}
+                            >
+                                <path d="M12 2L2 22h20L12 2z" />
+                            </ReferenceDot>
+                        ))}
                       </LineChart>
                     </ResponsiveContainer>
                   </ChartContainer>
