@@ -71,7 +71,8 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
         } catch (e) {
             // Parsing failed, return raw content for the caller to handle.
             console.error("Failed to parse JSON from HyperClova X response, returning raw content.", messageContent);
-            return messageContent; 
+            // Instead of returning raw content which causes downstream errors, we'll re-throw a more specific error.
+            throw new Error(`Failed to parse JSON from AI response. Raw content: ${messageContent}`);
         }
 
     } catch (error) {
