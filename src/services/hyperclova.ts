@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 const API_KEY = process.env.HYPERCLOVA_API_KEY;
@@ -28,7 +29,7 @@ export interface Message {
  */
 export async function callHyperClovaX(messages: Message[], systemPrompt: string): Promise<any> {
     const payload = {
-        stream: false, // Not using streaming for this implementation
+        stream: false,
         topK: 0,
         includeAiFilters: true,
         maxTokens: 2048,
@@ -45,14 +46,25 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
     try {
         const response = await axios.post(URL, payload, { headers });
         const result = response.data;
-        const messageContent = result.result.message.content;
+        let messageContent = result.result.message.content;
         
-        // The response is often a JSON string within a string, so we need to parse it.
+        // AI가 JSON 외에 다른 텍스트를 포함하여 응답하는 경우가 있으므로,
+        // 응답에서 JSON 객체만 추출합니다.
         try {
-            return JSON.parse(messageContent);
+            const jsonStart = messageContent.indexOf('{');
+            const jsonEnd = messageContent.lastIndexOf('}');
+
+            if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+                messageContent = messageContent.substring(jsonStart, jsonEnd + 1);
+                return JSON.parse(messageContent);
+            } else {
+                // JSON 객체를 찾지 못하면 원래 내용을 파싱 시도
+                return JSON.parse(messageContent);
+            }
         } catch (e) {
-            // If it's not a JSON string, return as is.
-            return messageContent;
+            // 파싱에 실패하면 원본 내용을 반환 (오류 처리는 호출 측에서)
+            console.error("Failed to parse JSON from HyperClova X response, returning raw content.", messageContent);
+            return messageContent; 
         }
 
     } catch (error) {
