@@ -72,11 +72,13 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
             }
         // This catch block handles network errors or API server errors (e.g., 5xx)
         } catch (error) {
-            console.error(`Attempt ${attempt} failed for HyperClova X API call:`, error);
             if (axios.isAxiosError(error)) {
                  // JSON 파싱 에러는 위에서 잡히므로 여기서는 주로 네트워크/서버 에러입니다.
-                console.error("Response data:", error.response?.data);
+                console.error(`Attempt ${attempt} failed for HyperClova X API call. Status: ${error.response?.status}`, error.response?.data);
+            } else {
+                console.error(`Attempt ${attempt} failed for HyperClova X API call:`, error);
             }
+
 
             if (attempt === MAX_RETRIES) {
                 // 마지막 시도에서도 실패하면 최종적으로 에러를 던집니다.
