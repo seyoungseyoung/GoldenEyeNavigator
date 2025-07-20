@@ -31,7 +31,7 @@ export function calculateSignals(data: HistoricalDataPoint[], indicators: Recomm
                 signals.push(...calculateBollingerBandsSignals(data, closePrices, indicator.params));
                 break;
             case 'Stochastic':
-                signals.push(...calculateStochasticSignals(data, closePrices, indicator.params));
+                signals.push(...calculateStochasticSignals(data, indicator.params));
                 break;
         }
     });
@@ -124,10 +124,11 @@ function calculateBollingerBandsSignals(data: HistoricalDataPoint[], closePrices
     return signals;
 }
 
-function calculateStochasticSignals(data: HistoricalDataPoint[], closePrices: number[], params: any): Omit<HistoricalSignal, 'close'>[] {
+function calculateStochasticSignals(data: HistoricalDataPoint[], params: any): Omit<HistoricalSignal, 'close'>[] {
     const { period = 14, signalPeriod = 3 } = params;
     const highPrices = data.map(d => d.high); 
     const lowPrices = data.map(d => d.low);
+    const closePrices = data.map(d => d.close);
     
     const stochValues = Stochastic.calculate({
         high: highPrices,
