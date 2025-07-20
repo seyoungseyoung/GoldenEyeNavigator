@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
@@ -63,10 +63,32 @@ const formFields = [
     { name: 'riskTolerance', label: '8. 위험 감수 수준', options: ['보수적(자본 보존 우선)', '다소 보수적', '중립적(위험과 수익 균형)', '다소 공격적', '공격적(높은 수익 추구, 높은 위험 감수)'] },
 ];
 
+const loadingMessages = [
+    "제출된 정보를 분석 중입니다...",
+    "AI가 투자 성향을 파악하고 있습니다...",
+    "맞춤형 포트폴리오를 구성하고 있습니다...",
+    "추천 종목을 선정하는 중입니다...",
+    "거의 다 됐습니다. 잠시만 기다려주세요...",
+];
+
 export function SurveyForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading) {
+      setLoadingMessage(loadingMessages[0]); // Reset to the first message on new loading
+      let messageIndex = 0;
+      interval = setInterval(() => {
+        messageIndex = (messageIndex + 1) % loadingMessages.length;
+        setLoadingMessage(loadingMessages[messageIndex]);
+      }, 3000); // Change message every 3 seconds
+    }
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -171,7 +193,7 @@ export function SurveyForm() {
                 {isLoading ? (
                     <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        전략 생성 중...
+                        {loadingMessage}
                     </>
                 ) : '내 전략 생성하기'}
             </Button>
