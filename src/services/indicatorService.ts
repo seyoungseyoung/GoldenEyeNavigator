@@ -1,6 +1,4 @@
 
-'use server';
-
 import { RSI, MACD, BollingerBands, Stochastic } from 'technicalindicators';
 import type { StockSignalOutput } from '@/ai/flows/stock-signal-generator';
 import type { HistoricalSignal } from '@/components/timing/StockChartWithSignals';
@@ -128,8 +126,8 @@ function calculateBollingerBandsSignals(data: HistoricalDataPoint[], closePrices
 
 function calculateStochasticSignals(data: HistoricalDataPoint[], closePrices: number[], params: any): Omit<HistoricalSignal, 'close'>[] {
     const { period = 14, signalPeriod = 3 } = params;
-    const highPrices = data.map(d => d.close); // Using close as a proxy for high/low/open
-    const lowPrices = data.map(d => d.close);
+    const highPrices = data.map(d => d.high); 
+    const lowPrices = data.map(d => d.low);
     
     const stochValues = Stochastic.calculate({
         high: highPrices,
