@@ -6,8 +6,6 @@ import { Card } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { format, parseISO } from 'date-fns';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Badge } from '../ui/badge';
 import type { StockSignalOutput as AIResult } from '@/ai/flows/stock-signal-generator';
 
 export type HistoricalSignal = {
@@ -22,53 +20,24 @@ interface StockChartProps {
     historicalSignals: HistoricalSignal[];
 }
 
-// 커스텀 ReferenceDot 렌더링
-const SignalDot = (props: any) => {
-  const { cx, cy, signalData } = props;
+// 커스텀 ReferenceDot 렌더링을 위한 컴포넌트
+const SignalShape = (props: any) => {
+  const { cx, cy, payload } = props;
 
-  // signalData가 없으면 아무것도 렌더링하지 않음
-  if (!signalData || !signalData.signal) {
-      return null;
+  if (!payload || !payload.signal) {
+    return null;
   }
   
-  const isBuySignal = signalData.signal.includes('매수');
+  const isBuySignal = payload.signal.includes('매수');
+
+  // 매수: 파란색 위쪽 삼각형, 매도: 빨간색 아래쪽 삼각형
+  const fill = isBuySignal ? '#3b82f6' : '#ef4444'; 
+  const d = isBuySignal ? "M 0 -8 L 8 8 L -8 8 Z" : "M 0 8 L 8 -8 L -8 -8 Z";
 
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <svg x={cx - 10} y={cy - (isBuySignal ? 20 : 0)} width="20" height="20" viewBox="0 0 24 24" fill={isBuySignal ? "hsl(var(--primary))" : "hsl(var(--destructive))"} style={{cursor: 'pointer'}}>
-          {isBuySignal ? (
-            <path d="M12 2L2 22h20L12 2z" /> // Upward Triangle
-          ) : (
-            <path d="M12 22L2 2h20L12 22z" /> // Downward Triangle
-          )}
-        </svg>
-      </PopoverTrigger>
-      <PopoverContent className="w-80">
-        <div className="grid gap-4">
-          <div className="space-y-2">
-            <h4 className="font-medium leading-none">신호 상세 정보</h4>
-            <p className="text-sm text-muted-foreground">
-              {signalData.date}에 발생한 신호 분석입니다.
-            </p>
-          </div>
-          <div className="grid gap-2">
-            <div className="grid grid-cols-3 items-center gap-4">
-              <span className="font-semibold">날짜</span>
-              <span className="col-span-2">{signalData.date}</span>
-            </div>
-            <div className="grid grid-cols-3 items-center gap-4">
-              <span className="font-semibold">신호</span>
-              <Badge variant={isBuySignal ? "default" : "destructive"} className="col-span-2">{signalData.signal}</Badge>
-            </div>
-            <div className="grid grid-cols-3 items-start gap-4">
-               <span className="font-semibold pt-1">근거</span>
-               <p className="col-span-2 text-sm text-muted-foreground">{signalData.rationale}</p>
-            </div>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <g transform={`translate(${cx}, ${cy})`}>
+      <path d={d} fill={fill} />
+    </g>
   );
 };
 
@@ -80,16 +49,22 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
       color: "hsl(var(--primary))",
     },
   };
-
-  const processedSignals = useMemo(() => {
-    if (!historicalSignals || historicalSignals.length === 0) {
-        return [];
+  
+  const { chartData, processedSignals } = useMemo(() => {
+    if (!historicalData || historicalData.length === 0) {
+      return { chartData: [], processedSignals: [] };
     }
 
-    // Sort by date to ensure chronological order before filtering
+    const signalMap = new Map(historicalSignals.map(s => [s.date, s]));
+    
+    const augmentedData = historicalData.map(d => ({
+        ...d,
+        signalInfo: signalMap.get(d.date) // 해당 날짜에 신호 정보 추가
+    }));
+    
+    // 연속 신호 필터링
     const sortedSignals = [...historicalSignals].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
-    // Filter consecutive signals of the same type
     const filtered: HistoricalSignal[] = [];
     let lastSignalType: '매수' | '매도' | null = null;
   
@@ -101,9 +76,33 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
         lastSignalType = currentSignalType;
       }
     }
-    return filtered;
 
-  }, [historicalSignals]);
+    return { chartData: augmentedData, processedSignals: filtered };
+
+  }, [historicalData, historicalSignals]);
+
+  // 커스텀 툴팁
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="p-2 text-sm bg-background/80 border border-border rounded-md shadow-lg">
+          <p className="font-bold">{format(parseISO(label), "yyyy-MM-dd")}</p>
+          <p style={{ color: chartConfig.close.color }}>
+            {`종가: ${data.close.toFixed(2)}`}
+          </p>
+          {data.signalInfo && (
+            <div className="mt-2 pt-2 border-t border-border/50">
+                <p className={`font-bold ${data.signalInfo.signal.includes('매수') ? 'text-blue-500' : 'text-red-500'}`}>
+                    {`${data.signalInfo.signal}: ${data.signalInfo.rationale}`}
+                </p>
+            </div>
+          )}
+        </div>
+      );
+    }
+    return null;
+  };
 
 
   return (
@@ -111,7 +110,7 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
       <ChartContainer config={chartConfig} className="w-full h-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
-            data={historicalData}
+            data={chartData}
             margin={{
               top: 20, right: 20, left: -10, bottom: 5,
             }}
@@ -132,11 +131,8 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
               tickMargin={8}
             />
             <Tooltip
-              cursor={true}
-              content={<ChartTooltipContent
-                indicator="dot"
-                labelFormatter={(label) => format(parseISO(label), "yyyy-MM-dd")}
-              />}
+              content={<CustomTooltip />}
+              cursor={{ stroke: 'hsl(var(--foreground))', strokeWidth: 1, strokeDasharray: '3 3' }}
             />
             <Legend />
             <Line
@@ -152,12 +148,10 @@ export function StockChartWithSignals({ historicalData, historicalSignals }: Sto
                     key={index} 
                     x={signal.date} 
                     y={signal.close}
-                    r={10} 
+                    r={8} 
                     ifOverflow="extendDomain"
-                >
-                   {/* Pass all signal data to the custom shape */}
-                   <SignalDot signalData={signal} />
-                </ReferenceDot>
+                    shape={<SignalShape payload={signal} />}
+                />
             ))}
           </LineChart>
         </ResponsiveContainer>
