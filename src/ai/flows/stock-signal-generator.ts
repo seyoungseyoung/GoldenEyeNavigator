@@ -32,9 +32,9 @@ const HistoricalSignalPointSchema = z.object({
 });
 
 const StockSignalOutputSchema = z.object({
-  indicator1: z.string().describe('첫 번째로 추천된 기술 지표 이름(한글 또는 영문 약어).'),
-  indicator2: z.string().describe('두 번째로 추천된 기술 지표 이름(한글 또는 영문 약어).'),
-  indicator3: z.string().describe('세 번째로 추천된 기술 지표 이름(한글 또는 영문 약어).'),
+  indicator1: z.string().describe('첫 번째로 추천된 기술 지표 이름. "약어 (한글 전체 이름)" 형식으로 작성해주세요. 예: "RSI (상대강도지수)"'),
+  indicator2: z.string().describe('두 번째로 추천된 기술 지표 이름. "약어 (한글 전체 이름)" 형식으로 작성해주세요. 예: "MACD (이동평균 수렴-확산)"'),
+  indicator3: z.string().describe('세 번째로 추천된 기술 지표 이름. "약어 (한글 전체 이름)" 형식으로 작성해주세요. 예: "Bollinger Bands (볼린저 밴드)"'),
   signal: z
     .enum(['강한 매수', '매수', '보류', '매도', '강한 매도'])
     .describe(
@@ -44,7 +44,7 @@ const StockSignalOutputSchema = z.object({
     date: z.string(),
     close: z.number(),
   })).describe('Historical stock data for the last 252 days.'),
-  historicalSignals: z.array(HistoricalSignalPointSchema).describe("과거 데이터의 각 주요 지점에서 발생한 매수 또는 매도 신호의 목록. '보류' 신호는 제외하고 의미있는 신호만 포함시켜 주세요.")
+  historicalSignals: z.array(HistoricalSignalPointSchema).describe("과거 데이터의 각 주요 지점에서 발생한 매수 또는 매도 신호의 목록. '보류' 신호는 제외하고 의미있는 신호만 최소 3개 이상 포함시켜 주세요.")
 });
 export type StockSignalOutput = z.infer<typeof StockSignalOutputSchema>;
 
@@ -72,6 +72,7 @@ export async function generateStockSignal(
     *   제공된 과거 주가 데이터 전체를 분석하여, 추천된 3개의 기술 지표를 근거로 **의미 있는 매수 또는 매도 신호가 발생했던 과거 시점들**을 찾아 목록으로 만듭니다.
     *   각 신호 발생 시점마다 날짜('date'), 신호 유형('signal'), 그리고 판단 근거('rationale')를 포함해야 합니다.
     *   '보류' 신호는 'historicalSignals' 목록에 포함하지 마세요. 매수 또는 매도 시점만 알려주면 됩니다.
+    *   **과거 데이터 전체에서 의미있는 매수/매도 신호를 최소 3개 이상 반드시 찾아서 포함해야 합니다.**
 
 **출력은 반드시 다음 JSON 스키마를 따르는 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.**
 
@@ -82,11 +83,11 @@ ${JSON.stringify(jsonSchema, null, 2)}
 
 **매우 중요한 규칙:**
 - 'signal' 필드의 값은 반드시 "강한 매수", "매수", "보류", "매도", "강한 매도" 5가지 중 하나여야 합니다.
-- 'indicator1', 'indicator2', 'indicator3' 필드에는 아래 목록에서 선택된 기술 지표의 이름을 문자열로 넣어야 합니다.
+- 'indicator1', 'indicator2', 'indicator3' 필드에는 아래 목록에서 선택된 기술 지표의 이름을 **"약어 (한글 전체 이름)" 형식**으로 넣어야 합니다. (예: "RSI (상대강도지수)")
 - 모든 설명('rationale')은 한글로 작성해야 합니다.
 
 **사용 가능한 기술 지표 목록:**
-SMA, EMA, MACD, Parabolic SAR, Ichimoku Cloud, RSI, Stochastic Oscillator, CCI, ROC, Bollinger Bands, Keltner Channel, OBV, VWAP, MFI, CMF
+SMA (단순 이동 평균), EMA (지수 이동 평균), MACD (이동평균 수렴-확산), Parabolic SAR (파라볼릭 SAR), Ichimoku Cloud (일목균형표), RSI (상대강도지수), Stochastic Oscillator (스토캐스틱 오실레이터), CCI (상품 채널 지수), ROC (가격 변화율), Bollinger Bands (볼린저 밴드), Keltner Channel (켈트너 채널), OBV (거래량 균형 지표), VWAP (거래량 가중 평균 가격), MFI (자금 흐름 지수), CMF (차이킨 자금 흐름)
 `;
 
   const userInput = `
