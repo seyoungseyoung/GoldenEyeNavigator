@@ -1,6 +1,5 @@
 
 import type {NextConfig} from 'next';
-import path from 'path';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -19,22 +18,6 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
-  },
-   webpack: (config, { isServer }) => {
-    // This is to prevent the server from restarting when the subscriptions.json file is modified.
-    if (!isServer) {
-      const existingIgnored = config.watchOptions.ignored || [];
-      const ignoredPaths = Array.isArray(existingIgnored)
-        ? existingIgnored
-        : [existingIgnored];
-
-      config.watchOptions.ignored = [
-        ...ignoredPaths,
-        path.resolve(__dirname, 'src/data'),
-      ];
-    }
-    
-    return config;
   },
 };
 
