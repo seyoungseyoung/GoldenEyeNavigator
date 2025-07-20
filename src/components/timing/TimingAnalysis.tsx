@@ -74,38 +74,51 @@ export function TimingAnalysis() {
   async function onSignalSubmit(values: z.infer<typeof signalFormSchema>) {
     setIsSignalLoading(true);
     setResult(null);
+    let finalTicker = '';
+    let historicalData: HistoricalDataPoint[] = [];
 
     try {
-      // Step 1: Convert user query to a valid ticker
-      toast({ title: '티커 변환 중...', description: `'${values.query}'에 대한 티커를 찾고 있습니다.` });
-      const conversionResult = await convertToTicker({ query: values.query });
+      // Step 1: Try fetching data with the user's query directly
+      try {
+        toast({ title: '주가 데이터 조회 중...', description: `${values.query}의 데이터를 직접 조회합니다.` });
+        historicalData = await getHistoricalData(values.query);
+        finalTicker = values.query.toUpperCase();
+        toast({ title: '데이터 조회 성공!', description: `입력하신 '${finalTicker}'에 대한 분석을 시작합니다.` });
 
-      if (!conversionResult.success || !conversionResult.ticker) {
-        toast({
-          variant: "destructive",
-          title: "티커 변환 실패",
-          description: conversionResult.reason || "입력한 종목의 티커를 찾을 수 없습니다.",
-        });
-        return;
+      } catch (e) {
+        // Step 2: If direct fetch fails, use AI for ticker conversion
+        toast({ title: '티커 변환 중...', description: `'${values.query}'가 티커가 아닌 것 같습니다. AI로 변환을 시도합니다.` });
+        const conversionResult = await convertToTicker({ query: values.query });
+
+        if (!conversionResult.success || !conversionResult.ticker) {
+          toast({
+            variant: "destructive",
+            title: "티커 변환 실패",
+            description: conversionResult.reason || "입력한 종목의 티커를 찾을 수 없습니다.",
+          });
+          setIsSignalLoading(false);
+          return;
+        }
+
+        finalTicker = conversionResult.ticker;
+        toast({ title: '티커 변환 완료', description: `'${values.query}' -> '${finalTicker}'로 변환되었습니다. 데이터를 다시 조회합니다.` });
+        
+        // Step 3: Fetch data again with the converted ticker
+        historicalData = await getHistoricalData(finalTicker);
       }
-      
-      const ticker = conversionResult.ticker;
-      signalForm.setValue('query', ticker);
-      toast({ title: '티커 변환 완료', description: `'${values.query}' -> '${ticker}'로 변환되었습니다. 분석을 시작합니다.` });
 
-      // Step 2: Fetch historical data and validate the ticker
-      toast({ title: '주가 데이터 조회 중...', description: `${ticker}의 과거 데이터를 가져오고 있습니다.` });
-      const historicalData = await getHistoricalData(ticker);
+      // If we reach here, we have a valid ticker and historical data.
+      signalForm.setValue('query', finalTicker);
 
-      // Step 3: AI selects indicators and parameters
+      // Step 4: AI selects indicators and parameters
       toast({ title: 'AI 분석 중...', description: '최적의 기술 지표를 선택하고 있습니다.' });
       const signalResult = await generateStockSignal({
-        ticker,
+        ticker: finalTicker,
         tradingStrategy: values.tradingStrategy,
-        historicalData, // Pass data to AI
+        historicalData,
       });
 
-      // Step 4: Application calculates signals based on AI's strategy
+      // Step 5: Application calculates signals based on AI's strategy
       const historicalSignals = calculateSignals(
         historicalData,
         signalResult.recommendedIndicators
@@ -113,13 +126,13 @@ export function TimingAnalysis() {
 
       setResult({ 
         ...signalResult, 
-        ticker: ticker, 
+        ticker: finalTicker, 
         tradingStrategy: values.tradingStrategy,
         historicalData,
         historicalSignals
       });
       
-      toast({ title: '분석 완료!', description: `${ticker}에 대한 매매 신호 분석이 완료되었습니다.` });
+      toast({ title: '분석 완료!', description: `${finalTicker}에 대한 매매 신호 분석이 완료되었습니다.` });
 
     } catch (error: any) {
       console.error('Error during signal generation process:', error);
