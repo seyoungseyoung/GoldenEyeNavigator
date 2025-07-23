@@ -86,9 +86,9 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
             if (attempt === MAX_RETRIES) {
                 // 마지막 시도에서도 실패하면 최종적으로 에러를 던집니다.
                 let errorMessage = "Failed to get response from HyperClova X API after multiple retries.";
-                if (axios.isAxiosError(lastError) && lastError.response?.data) {
+                if (axios.isAxiosError(lastError) && lastError.response) {
                     // 서버가 제공한 구체적인 에러 메시지를 포함합니다.
-                    errorMessage += ` Last error: ${JSON.stringify(lastError.response.data)}`;
+                    errorMessage = `Failed to get response from HyperClova X API. Status: ${lastError.response.status}. Response: ${JSON.stringify(lastError.response.data)}`;
                 }
                 throw new Error(errorMessage);
             }
