@@ -45,7 +45,6 @@ AI가 생성한 맞춤 전략을 시각적으로 확인하는 페이지입니다
     -   [**HyperClova X**](https://clovastudio.ncloud.com/) - 핵심 투자 전략 및 분석을 위한 Naver의 LLM
     -   **Next.js Server Actions** - 프론트엔드와 백엔드 간의 원활한 통신 (AI 플로우 호출)
     -   [**Nodemailer**](https://nodemailer.com/) - 이메일 발송을 위한 모듈
-    -   [**Node-cron**](https://github.com/node-cron/node-cron) - 매일 아침 자동 신호 분석 및 발송을 위한 스케줄러
 -   **데이터**:
     -   [**Axios**](https://axios-http.com/) - Yahoo Finance API 직접 호출을 통한 안정적인 주가 데이터 조회
     -   **JSON 파일** - 이메일 구독자 정보 저장을 위한 간단한 로컬 데이터베이스
@@ -60,7 +59,6 @@ AI가 생성한 맞춤 전략을 시각적으로 확인하는 페이지입니다
 ├── public/                 # 정적 파일
 ├── src/
 │   ├── ai/
-│   │   ├── dev.ts          # 개발 서버 시작 시 모듈 초기화
 │   │   └── flows/          # AI 핵심 로직 (HyperClova X 호출)
 │   │       ├── investment-strategy-generator.ts
 │   │       ├── market-insight-analyzer.ts
@@ -79,7 +77,7 @@ AI가 생성한 맞춤 전략을 시각적으로 확인하는 페이지입니다
 │   ├── hooks/              # 커스텀 React Hooks (useToast, useMobile)
 │   ├── lib/                # 유틸리티 함수
 │   └── services/           # 외부 서비스 연동 로직
-│       ├── emailService.ts # Nodemailer 설정 및 이메일 발송, 스케줄링
+│       ├── emailService.ts # Nodemailer 설정 및 이메일 발송
 │       ├── hyperclova.ts   # HyperClova X API 호출 클라이언트 (자동 재시도 로직 포함)
 │       ├── indicatorService.ts # 기술적 지표 계산 로직
 │       ├── stockService.ts # Yahoo Finance 주가 데이터 조회 (Axios 기반)
@@ -102,7 +100,7 @@ pnpm install
 ```
 
 ### 3. 환경 변수 설정
-프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 아래 내용을 채워넣으세요.
+프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 아래 내용을 실제 값으로 채워넣으세요.
 
 ```env
 # HyperClova X API Keys
@@ -113,8 +111,11 @@ HYPERCLOVA_REQUEST_ID="여기에_요청_ID를_입력하세요"
 # (Gmail 사용 시, 2단계 인증 및 앱 비밀번호 설정이 필요합니다.)
 SMTP_SERVER="smtp.gmail.com"
 SMTP_PORT=587
-USERNAME="your-email@gmail.com"
-PASSWORD="your_gmail_app_password"
+SMTP_USERNAME="your-email@gmail.com"
+SMTP_PASSWORD="your_gmail_app_password"
+
+# CRON Job Secret
+CRON_SECRET="여기에_아무도_추측할_수_없는_비밀_문자열을_입력하세요"
 ```
 
 ### 4. 개발 서버 실행
@@ -126,3 +127,4 @@ pnpm run dev
 
 ## 🤝 기여 방법
 프로젝트에 기여하고 싶으시다면 언제든지 환영합니다. 버그 리포트, 기능 제안 등은 GitHub 이슈를 통해 남겨주세요.
+```

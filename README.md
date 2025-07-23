@@ -1,4 +1,3 @@
-
 # GoldenLife Navigator: 당신의 AI 금융 어드바이저
 
 **GoldenLife Navigator**는 사용자의 투자 성향과 재무 목표에 맞춰, AI가 개인화된 투자 전략을 추천하고 시장 분석 및 안정적인 매매 타이밍 신호를 제공하는 차세대 금융 어드바이저 웹 애플리케이션입니다. 복잡한 금융 데이터를 AI가 분석하여, 누구나 쉽게 이해하고 실행할 수 있는 명확한 가이드를 제시하는 것을 목표로 합니다.
@@ -57,7 +56,6 @@ AI가 생성한 맞춤 전략을 다양한 시각 자료와 상세한 설명으�
     -   [**HyperClova X**](https://clovastudio.ncloud.com/) - 핵심 투자 전략 수립 및 시장 분석을 위한 Naver의 강력한 LLM
     -   **Next.js Server Actions** - 프론트엔드와 백엔드 간의 원활하고 안전한 통신 (AI 플로우 호출)
     -   [**Nodemailer**](https://nodemailer.com/) - 이메일 발송을 위한 검증된 모듈
-    -   [**Node-cron**](https://github.com/node-cron/node-cron) - 매일 아침 자동 신호 분석 및 발송을 위한 스케줄러
 -   **데이터 소스**:
     -   [**Axios**](https://axios-http.com/) - 야후 파이낸스 API 직접 호출을 통한 안정적인 주가 데이터 조회 (외부 라이브러리 의존성 최소화)
     -   **JSON 파일 (`/src/data/subscriptions.json`)** - 이메일 구독자 정보 저장을 위한 간단한 로컬 데이터베이스
@@ -74,7 +72,6 @@ AI가 생성한 맞춤 전략을 다양한 시각 자료와 상세한 설명으�
 ├── public/                 # 정적 파일 (이미지 등)
 ├── src/
 │   ├── ai/
-│   │   ├── dev.ts          # 개발 서버 시작 시 스케줄러 등 모듈 초기화
 │   │   └── flows/          # AI 핵심 로직 (HyperClova X 호출)
 │   │       ├── investment-strategy-generator.ts # 맞춤 투자 전략 생성
 │   │       ├── market-insight-analyzer.ts     # 시장 뉴스 분석
@@ -93,7 +90,7 @@ AI가 생성한 맞춤 전략을 다양한 시각 자료와 상세한 설명으�
 │   ├── hooks/              # 커스텀 React Hooks (useToast, useMobile)
 │   ├── lib/                # 유틸리티 함수 (cn 등)
 │   └── services/           # 외부 서비스 연동 로직
-│       ├── emailService.ts # Nodemailer 설정 및 이메일 발송, 스케줄링
+│       ├── emailService.ts # Nodemailer 설정 및 이메일 발송
 │       ├── hyperclova.ts   # HyperClova X API 호출 클라이언트 (자동 재시도 로직 포함)
 │       ├── indicatorService.ts # 기술적 지표 계산 로직
 │       ├── stockService.ts # 야후 파이낸스 주식 데이터 조회 (Axios 기반)
@@ -133,6 +130,10 @@ SMTP_SERVER="smtp.gmail.com"
 SMTP_PORT=587
 SMTP_USERNAME="your-email@gmail.com"
 SMTP_PASSWORD="your_gmail_app_password"
+
+# CRON Job Secret
+# 외부 스케줄러가 /api/cron 엔드포인트를 호출할 때 사용할 비밀 키입니다.
+CRON_SECRET="여기에_아무도_추측할_수_없는_비밀_문자열을_입력하세요"
 ```
 
 ### 4. 개발 서버 실행
@@ -146,3 +147,4 @@ pnpm run dev
 
 ## 🤝 기여 방법
 이 프로젝트에 기여하고 싶으시다면 언제든지 환영합니다. 버그 리포트, 기능 제안 등은 GitHub 이슈를 통해 남겨주세요. Pull Request를 보내주시면 더욱 좋습니다.
+```
