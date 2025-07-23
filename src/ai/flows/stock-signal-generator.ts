@@ -101,8 +101,9 @@ ${JSON.stringify(jsonSchema, null, 2)}
     const parsedResponse = StockSignalOutputSchema.safeParse(signalResult);
 
     if (!parsedResponse.success) {
-        console.error("HyperClova X response validation failed:", parsedResponse.error.flatten());
-        throw new Error("AI로부터 유효하지 않은 데이터 구조를 받았습니다.");
+        const errorDetails = JSON.stringify(parsedResponse.error.flatten(), null, 2);
+        console.error("HyperClova X response validation failed:", errorDetails);
+        throw new Error(`AI로부터 유효하지 않은 데이터 구조를 받았습니다. 오류: ${errorDetails}`);
     }
     
     return parsedResponse.data;
