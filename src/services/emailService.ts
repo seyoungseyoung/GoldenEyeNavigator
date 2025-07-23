@@ -48,28 +48,46 @@ export async function sendWelcomeEmail(email: string, ticker: string, indicators
  * Sends an email with the daily stock signal.
  * @param email The recipient's email address.
  * @param ticker The stock ticker.
- * @param signal The generated trading signal.
- * @param indicators The indicators used for the signal.
+ * @param result The full analysis result from the AI.
  */
 export async function sendSignalEmail(
     email: string,
     ticker: string,
-    signal: string,
-    indicators: StockSignalOutput['recommendedIndicators']
+    result: StockSignalOutput
 ): Promise<void> {
+
+    const signal = result.finalSignal;
+    const indicators = result.recommendedIndicators;
+    const rationale = result.rationale;
+
     const mailOptions = {
         from: `"GoldenLife Navigator" <${process.env.SMTP_USERNAME}>`,
         to: email,
         subject: `🔔 오늘의 ${ticker} 매매 신호: ${signal}`,
         html: `
-            <div style="font-family: sans-serif; padding: 20px; color: #333;">
-                <h2>${ticker} 오늘의 AI 매매 신호 분석</h2>
-                <p><b>종합 신호: <span style="font-weight: bold; color: ${signal.includes('매수') ? 'blue' : 'red'};">${signal}</span></b></p>
-                <p>분석에 사용된 주요 지표:</p>
-                <ul>
-                    ${indicators.map(indicator => `<li>${indicator.fullName} (${indicator.name})</li>`).join('')}
-                </ul>
-                <p style="font-size: 12px; color: #777;">본 정보는 투자 참고용이며, 최종 투자 결정은 본인의 책임하에 이루어져야 합니다.</p>
+            <div style="font-family: sans-serif; padding: 20px; color: #333; border: 1px solid #ddd; border-radius: 8px; max-width: 600px; margin: auto;">
+                <h2 style="color: #B8860B; border-bottom: 2px solid #FFD700; padding-bottom: 10px;">${ticker} AI 매매 신호 분석</h2>
+                <p style="font-size: 18px;">
+                    오늘의 종합 신호는 
+                    <span style="font-weight: bold; font-size: 20px; color: ${signal.includes('매수') ? '#2563eb' : '#dc2626'};">
+                        "${signal}"
+                    </span>
+                    입니다.
+                </p>
+                <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 20px;">
+                    <h3 style="margin-top: 0; color: #555;">AI 분석 코멘트</h3>
+                    <p style="font-style: italic; color: #666;">"${rationale}"</p>
+                </div>
+                <div style="margin-top: 20px;">
+                    <h4 style="color: #555;">분석에 사용된 주요 지표:</h4>
+                    <ul>
+                        ${indicators.map(indicator => `<li><b>${indicator.fullName}</b> (${indicator.name})</li>`).join('')}
+                    </ul>
+                </div>
+                <p style="font-size: 12px; color: #777; margin-top: 30px; text-align: center;">
+                    본 정보는 투자 참고용이며, 최종 투자 결정은 본인의 책임하에 이루어져야 합니다.<br/>
+                    <a href="https://studio--portfolio-revamp-x1zou.us-central1.hosted.app/timing" style="color: #B8860B;">웹에서 직접 분석하기</a>
+                </p>
             </div>
         `,
     };
@@ -104,13 +122,10 @@ export async function checkAndSendSignals() {
             if (result.finalSignal !== '보류') {
                 const subsToNotify = subscriptions.filter(s => s.ticker === ticker);
                 for(const sub of subsToNotify) {
-                    await sendSignalEmail(
-                        sub.email,
-                        ticker,
-                        result.finalSignal,
-                        result.recommendedIndicators
-                    );
+                    await sendSignalEmail(sub.email, ticker, result);
                 }
+            } else {
+                console.log(`Signal for ${ticker} is '보류'. Skipping email.`);
             }
         } catch (error) {
             console.error(`Failed to process signal for ${ticker}:`, error);
