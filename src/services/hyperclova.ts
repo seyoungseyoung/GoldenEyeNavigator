@@ -59,6 +59,14 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
             // AI가 JSON 외에 다른 텍스트를 포함하여 응답하는 경우가 있으므로,
             // 응답에서 JSON 객체만 안정적으로 추출합니다.
             try {
+                // Check if the response is wrapped in markdown code blocks
+                if (messageContent.includes('```json')) {
+                    const jsonMatch = messageContent.match(/```json\s*([\s\S]*?)\s*```/);
+                    if (jsonMatch && jsonMatch[1]) {
+                        messageContent = jsonMatch[1];
+                    }
+                }
+                // Fallback to finding the first and last brace
                 const jsonStart = messageContent.indexOf('{');
                 const jsonEnd = messageContent.lastIndexOf('}');
 
@@ -66,6 +74,7 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
                     const jsonString = messageContent.substring(jsonStart, jsonEnd + 1);
                     return JSON.parse(jsonString);
                 } else {
+                    // If no clear JSON object is found, try to parse the whole thing
                     return JSON.parse(messageContent);
                 }
             } catch (e) {
@@ -90,6 +99,8 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
                 if (axios.isAxiosError(lastError) && lastError.response) {
                     // 서버가 제공한 구체적인 에러 메시지를 포함합니다.
                     errorMessage = `Failed to get response from HyperClova X API. Status: ${lastError.response.status}. Response: ${JSON.stringify(lastError.response.data)}`;
+                } else if (lastError instanceof Error) {
+                    errorMessage = lastError.message;
                 }
                 throw new Error(errorMessage);
             }
@@ -100,4 +111,3 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
     // 루프가 비정상적으로 종료될 경우를 대비한 최종 에러 처리
     throw new Error("Failed to get response from HyperClova X API.");
 }
-
