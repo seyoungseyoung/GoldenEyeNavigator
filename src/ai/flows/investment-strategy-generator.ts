@@ -65,6 +65,7 @@ const InvestmentStrategyInputSchema = z.object({
     '다소 공격적',
     '공격적(높은 수익 추구, 높은 위험 감수)',
   ]).describe('Risk tolerance level.'),
+  retirementGoals: z.string().optional().describe('User\'s written retirement goals or concerns.'),
   otherAssets: z.string().describe('Description of other assets.'),
   name: z.string().describe('User name.'),
 });
@@ -91,6 +92,7 @@ export async function investmentStrategyGenerator(input: InvestmentStrategyInput
   const jsonSchema = zodToJsonSchema(InvestmentStrategyOutputSchema, "InvestmentStrategyOutputSchema");
 
   const systemPrompt = `당신은 한국인을 상대하는 전문 금융 투자 자문가입니다. 사용자의 투자 프로필을 기반으로 맞춤형 투자 전략을 생성해주세요.
+  특히, 사용자가 직접 작성한 '은퇴 목표 및 우려 사항'을 주의 깊게 분석하여, 단순히 선택한 답변뿐만 아니라 그 안에 담긴 미묘한 감정과 의도를 파악하여 전략에 반영해야 합니다. 예를 들어, '자산 고갈'에 대한 우려를 표하면 안정성을 더 강화하는 방향으로 전략을 조언해야 합니다.
   출력은 반드시 다음 JSON 스키마를 따르는 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.
 
   **출력 JSON 스키마:**
@@ -114,6 +116,7 @@ export async function investmentStrategyGenerator(input: InvestmentStrategyInput
   - 선호 투자 지역: ${input.regionPreference}
   - 선호 관리 스타일: ${input.managementStyle}
   - 위험 감수 수준: ${input.riskTolerance}
+  - 은퇴 목표 및 우려 사항: ${input.retirementGoals || '제공되지 않음'}
   - 기타 자산: ${input.otherAssets}
   - 투자자 이름: ${input.name}`;
 

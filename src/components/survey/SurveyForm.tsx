@@ -48,6 +48,7 @@ const formSchema = z.object({
   riskTolerance: z.enum([
     '보수적(자본 보존 우선)', '다소 보수적', '중립적(위험과 수익 균형)', '다소 공격적', '공격적(높은 수익 추구, 높은 위험 감수)'
   ], { required_error: "위험 감수 수준을 선택해주세요." }),
+  retirementGoals: z.string().optional(),
   otherAssets: z.string().optional(),
   name: z.string().min(1, { message: '이름을 입력해주세요.' }),
 });
@@ -101,6 +102,7 @@ export function SurveyForm() {
       regionPreference: undefined,
       managementStyle: undefined,
       riskTolerance: undefined,
+      retirementGoals: '',
       otherAssets: '',
       name: '',
     },
@@ -164,10 +166,24 @@ export function SurveyForm() {
         
         <FormField
           control={form.control}
+          name="retirementGoals"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="font-bold text-lg">9. 은퇴 목표 및 우려 사항</FormLabel>
+              <FormControl>
+                <Textarea placeholder="은퇴 후 이루고 싶은 목표나 자금 운용에 대한 걱정이 있다면 자유롭게 작성해주세요. (예: 20년 후 자산이 고갈되지 않았으면 합니다.)" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
           name="otherAssets"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-bold text-lg">9. 기타 자산</FormLabel>
+              <FormLabel className="font-bold text-lg">10. 기타 자산</FormLabel>
               <FormControl>
                 <Textarea placeholder="보유하고 계신 기타 자산에 대해 설명해주세요 (부동산, 암호화폐, 예술품 등)" {...field} />
               </FormControl>
@@ -181,7 +197,7 @@ export function SurveyForm() {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-bold text-lg">10. 이름</FormLabel>
+              <FormLabel className="font-bold text-lg">11. 이름</FormLabel>
               <FormControl>
                 <Input placeholder="이름을 입력해주세요" {...field} />
               </FormControl>
