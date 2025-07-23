@@ -1,13 +1,14 @@
 
 import axios from 'axios';
 
-const API_KEY = process.env.HYPERCLOVA_API_KEY;
-const REQUEST_ID = process.env.HYPERCLOVA_REQUEST_ID;
+//환경 변수를 읽을 때 trim()을 사용하여 앞뒤 공백 및 줄바꿈 문자를 제거합니다.
+const API_KEY = process.env.HYPERCLOVA_API_KEY?.trim();
+const REQUEST_ID = process.env.HYPERCLOVA_REQUEST_ID?.trim();
 const MODEL = "HCX-003";
 const URL = `https://clovastudio.stream.ntruss.com/testapp/v1/chat-completions/${MODEL}`;
 
 if (!API_KEY || !REQUEST_ID) {
-    throw new Error("HyperClova API Key or Request ID is not defined in .env");
+    throw new Error("HyperClova API Key or Request ID is not defined in .env. Please check your .env file.");
 }
 
 const headers = {
@@ -99,3 +100,4 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
     // 루프가 비정상적으로 종료될 경우를 대비한 최종 에러 처리
     throw new Error("Failed to get response from HyperClova X API.");
 }
+
