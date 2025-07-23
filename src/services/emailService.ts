@@ -1,6 +1,5 @@
 
 import nodemailer from 'nodemailer';
-import cron from 'node-cron';
 import { getAllSubscriptions } from './subscriptionService';
 import { generateStockSignal, StockSignalOutput } from '@/ai/flows/stock-signal-generator';
 import { getHistoricalData } from './stockService';
@@ -83,7 +82,7 @@ export async function sendSignalEmail(
 /**
  * Fetches signals for all subscriptions and sends emails.
  */
-async function checkAndSendSignals() {
+export async function checkAndSendSignals() {
     console.log('Running daily signal check...');
     const subscriptions = await getAllSubscriptions();
     // To avoid redundant API calls for the same ticker
@@ -118,23 +117,4 @@ async function checkAndSendSignals() {
         }
     }
     console.log('Daily signal check finished.');
-}
-
-
-/**
- * Schedules the daily job to check signals and send emails.
- * Runs every day at 5:00 AM KST.
- */
-export function scheduleDailySignalChecks() {
-    // Cron format: 'Minute Hour Day-of-Month Month Day-of-Week'
-    // Set to run at 5:00 AM in Seoul's timezone.
-    cron.schedule('0 5 * * *', () => {
-        console.log('Scheduler triggered for KST 05:00.');
-        checkAndSendSignals();
-    }, {
-        scheduled: true,
-        timezone: "Asia/Seoul"
-    });
-
-    console.log('Email scheduler started. Daily checks at 05:00 KST.');
 }

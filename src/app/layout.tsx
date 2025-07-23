@@ -4,26 +4,6 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Toaster } from "@/components/ui/toaster"
 
-// --- Server Initialization Logic ---
-import { scheduleDailySignalChecks } from '@/services/emailService';
-import '@/ai/flows/market-insight-analyzer';
-import '@/ai/flows/investment-strategy-generator';
-import '@/ai/flows/stock-signal-generator';
-import '@/ai/flows/subscribeToSignals';
-import '@/ai/flows/ticker-converter';
-
-let serverInitialized = false;
-async function initializeServer() {
-  if (serverInitialized) {
-    return;
-  }
-  serverInitialized = true;
-  console.log("Initializing server modules for production...");
-  scheduleDailySignalChecks();
-  console.log('Server started and email scheduler is running.');
-}
-// --- End Server Initialization Logic ---
-
 export const metadata: Metadata = {
   title: 'GoldenLife Navigator',
   description: 'Your personalized investment strategy guide.',
@@ -34,9 +14,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  if (typeof window === 'undefined') {
-    await initializeServer();
-  }
 
   return (
     <html lang="ko" className="dark">
