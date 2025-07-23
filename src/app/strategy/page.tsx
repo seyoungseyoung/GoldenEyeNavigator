@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -97,6 +98,9 @@ export default function StrategyPage() {
         <h1 className="font-headline text-4xl md:text-5xl font-bold text-primary">
           {name}님의 맞춤형 투자 전략
         </h1>
+        <p className="mt-4 text-2xl font-semibold text-secondary">
+          {strategy.portfolioName}
+        </p>
         <p className="mt-2 text-lg text-muted-foreground">AI가 생성한 개인화된 투자 포트폴리오입니다.</p>
       </div>
 
