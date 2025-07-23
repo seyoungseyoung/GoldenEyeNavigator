@@ -47,6 +47,8 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
         ],
     };
 
+    let lastError: any = null;
+
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
             const response = await axios.post(URL, payload, { headers });
@@ -72,8 +74,9 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
             }
         // This catch block handles network errors or API server errors (e.g., 5xx)
         } catch (error) {
+            lastError = error; // Store the last error
             if (axios.isAxiosError(error)) {
-                 // JSON 파싱 에러는 위에서 잡히므로 여기서는 주로 네트워크/서버 에러입니다.
+                // JSON 파싱 에러는 위에서 잡히므로 여기서는 주로 네트워크/서버 에러입니다.
                 console.error(`Attempt ${attempt} failed for HyperClova X API call. Status: ${error.response?.status}`, error.response?.data);
             } else {
                 console.error(`Attempt ${attempt} failed for HyperClova X API call:`, error);
@@ -82,7 +85,12 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
 
             if (attempt === MAX_RETRIES) {
                 // 마지막 시도에서도 실패하면 최종적으로 에러를 던집니다.
-                throw new Error("Failed to get response from HyperClova X API after multiple retries.");
+                let errorMessage = "Failed to get response from HyperClova X API after multiple retries.";
+                if (axios.isAxiosError(lastError) && lastError.response?.data) {
+                    // 서버가 제공한 구체적인 에러 메시지를 포함합니다.
+                    errorMessage += ` Last error: ${JSON.stringify(lastError.response.data)}`;
+                }
+                throw new Error(errorMessage);
             }
             // 재시도 전에 잠시 대기합니다.
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
