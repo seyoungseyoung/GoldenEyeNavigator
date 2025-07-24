@@ -10,8 +10,6 @@
 
 import { z } from 'zod';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
-import { zodToJsonSchema } from 'zod-to-json-schema';
-import type { InvestmentStrategyOutput } from './investment-strategy-generator';
 
 const InvestmentStrategySchemaForQnA = z.object({
   portfolioName: z.string(),
@@ -43,14 +41,11 @@ const FinancialQnAOutputSchema = z.object({
 export type FinancialQnAOutput = z.infer<typeof FinancialQnAOutputSchema>;
 
 export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQnAOutput> {
-  // 1. Validate the input from the client
   const parsedInput = FinancialQnAInputSchema.safeParse(input);
   if (!parsedInput.success) {
     throw new Error(`Invalid input provided to financialQnA flow: ${parsedInput.error.message}`);
   }
   
-  const jsonSchema = zodToJsonSchema(FinancialQnAOutputSchema, "FinancialQnAOutputSchema");
-
   const systemPrompt = `당신은 사용자의 개인 투자 전략을 완벽하게 파악하고 있는, 친절하고 유능한 AI 금융 어드바이저입니다.
   
   사용자의 질문에 답변할 때, 반드시 아래에 제공된 **사용자의 맞춤 투자 전략 정보**를 최우선 근거로 삼아야 합니다.
@@ -66,13 +61,7 @@ export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQ
   - 대신, 제공된 전략의 틀 안에서 원칙, 개념 설명, 고려해야 할 사항들을 중심으로 답변해야 합니다.
   - 사용자가 이해하기 쉽게, 전문 용어를 풀어서 친절한 어조로 설명해주세요.
   - 모든 답변은 반드시 한글로 작성해야 합니다.
-
-  **출력은 반드시 다음 JSON 스키마를 따르는 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.**
-
-  **출력 JSON 스키마:**
-  \`\`\`json
-  ${JSON.stringify(jsonSchema, null, 2)}
-  \`\`\`
+  - 출력은 반드시 {"answer": "여기에 답변 내용"} 형태의 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.
   `;
   
   const userInput = `내 투자 전략을 바탕으로, 다음 금융 관련 질문에 답변해주세요: "${input.question}"`;
@@ -81,7 +70,6 @@ export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQ
   try {
     const response = await callHyperClovaX(messages, systemPrompt);
     
-    // 2. Validate the response from the AI
     const parsedResponse = FinancialQnAOutputSchema.safeParse(response);
 
     if (!parsedResponse.success) {
@@ -94,7 +82,6 @@ export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQ
 
   } catch (error) {
     console.error("Error in financialQnA flow:", error);
-    // Re-throw the error to be handled by the client
     throw error;
   }
 }
