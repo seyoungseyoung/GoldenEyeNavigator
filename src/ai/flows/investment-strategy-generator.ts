@@ -72,20 +72,20 @@ const InvestmentStrategyInputSchema = z.object({
 export type InvestmentStrategyInput = z.infer<typeof InvestmentStrategyInputSchema>;
 
 const InvestmentStrategyOutputSchema = z.object({
-  portfolioName: z.string().describe('포트폴리오의 이름. 예: "안정수익 포트폴리오", "공격형 성장 포트폴리오"'),
+  portfolioName: z.string(),
   assetAllocation: z.object({
-    stocks: z.number().describe('주식에 할당된 자산의 비율(%). 0에서 100 사이의 숫자.'),
-    bonds: z.number().describe('채권에 할당된 자산의 비율(%). 0에서 100 사이의 숫자.'),
-    cash: z.number().describe('현금에 할당된 자산의 비율(%). 0에서 100 사이의 숫자.'),
-  }).describe('주식, 채권, 현금에 대한 추천 자산 배분 비율. 합계는 100이어야 합니다.'),
+    stocks: z.number(),
+    bonds: z.number(),
+    cash: z.number(),
+  }),
   etfStockRecommendations: z.array(
     z.object({
-      ticker: z.string().describe('ETF 또는 주식의 티커 심볼. (예: "AAPL", "005930.KS")'),
-      rationale: z.string().describe('해당 종목을 추천하는 이유에 대한 한글 설명.'),
+      ticker: z.string(),
+      rationale: z.string(),
     })
-  ).min(3).max(4).describe('3개에서 4개의 추천 ETF 및 주식 목록.'),
-  tradingStrategy: z.string().describe('포트폴리오 운용 방식에 대한 한글 설명. 언제 사고팔아야 하는지에 대한 개요.'),
-  strategyExplanation: z.string().describe('생성된 전체 투자 전략에 대한 상세한 한글 설명 및 추천 근거. 사용자가 이해하기 쉽게 전문 용어를 풀어쓰고, 친절한 어조로 작성해야 합니다.'),
+  ).min(3).max(4),
+  tradingStrategy: z.string(),
+  strategyExplanation: z.string(),
 });
 export type InvestmentStrategyOutput = z.infer<typeof InvestmentStrategyOutputSchema>;
 
