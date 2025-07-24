@@ -37,7 +37,7 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
         stream: false,
         topK: 0,
         includeAiFilters: true,
-        maxTokens: 2048,
+        maxTokens: 4096,
         temperature: 0.6,
         repeatPenalty: 5.0,
         topP: 0.8,
