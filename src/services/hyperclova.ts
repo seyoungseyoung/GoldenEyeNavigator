@@ -32,29 +32,31 @@ const RETRY_DELAY = 1000; // 1 second
  * @returns The parsed JSON object or null if parsing fails.
  */
 function parseJsonFromContent(content: string): any {
+    console.log("[DEBUG] Raw content for parsing:", content);
     try {
-        // Attempt to extract from ```json ... ``` markdown block first.
         const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
         if (jsonMatch && jsonMatch[1]) {
+            console.log("[DEBUG] Found JSON in markdown block.");
             return JSON.parse(jsonMatch[1]);
         }
     } catch (e) {
-        console.warn("Could not parse JSON from markdown block, will try other methods.");
+        console.warn("[DEBUG] Failed to parse JSON from markdown block:", e);
     }
 
     try {
-        // If markdown fails, try to find the first '{' and last '}'
         const firstBrace = content.indexOf('{');
         const lastBrace = content.lastIndexOf('}');
         if (firstBrace !== -1 && lastBrace > firstBrace) {
             const jsonString = content.substring(firstBrace, lastBrace + 1);
+            console.log("[DEBUG] Found brace-enclosed string. Attempting to parse.");
             return JSON.parse(jsonString);
         }
     } catch (e) {
-        console.warn("Could not parse JSON from brace-enclosed content, will try parsing the whole string.");
+        console.warn("[DEBUG] Failed to parse JSON from brace-enclosed content:", e);
     }
     
     // If no valid JSON structure is found, return null. It might be a plain text response.
+    console.log("[DEBUG] No parsable JSON structure found in content.");
     return null;
 }
 
@@ -86,43 +88,48 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string,
     let lastError: any = null;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        console.log(`[DEBUG] HyperClova X API Call - Attempt ${attempt}/${MAX_RETRIES}`);
         try {
             // Step 1: Call the API
             const response = await axios.post(URL, payload, { headers });
+
+            if (!response.data || !response.data.result || !response.data.result.message || !response.data.result.message.content) {
+                throw new Error("Invalid API response structure from HyperClova X.");
+            }
+
             const messageContent = response.data.result.message.content;
             
             // Step 2: Try to parse the response as JSON.
             const parsedJson = parseJsonFromContent(messageContent);
             
             if (parsedJson) {
-                // If parsing succeeds, return the valid JSON object.
+                console.log("[DEBUG] Successfully parsed JSON from AI response.");
                 return parsedJson;
             }
 
             // Step 3: If no JSON is found, and a jsonOutputFormat key is provided,
             // assume the response is plain text and wrap it.
             if (jsonOutputFormat) {
-                console.log(`Attempt ${attempt} - Received plain text. Wrapping with key "${jsonOutputFormat}".`);
+                console.log(`[DEBUG] Attempt ${attempt} - Received plain text. Wrapping with key "${jsonOutputFormat}".`);
                 return { [jsonOutputFormat]: messageContent.trim() };
             }
 
             // Step 4: If no JSON is found and no format key is provided, it's an invalid state.
             // We consider this a failure and will trigger a retry.
             lastError = new Error(`AI returned a non-JSON response, and no output format was specified. Raw content: ${messageContent}`);
-            console.error(`Attempt ${attempt} failed: ${lastError.message}`);
+            console.error(`[DEBUG] Attempt ${attempt} failed: ${lastError.message}`);
 
         } catch (error) {
             lastError = error;
             if (axios.isAxiosError(error)) {
-                console.error(`Attempt ${attempt} - API Call Failed. Status: ${error.response?.status}`, error.response?.data);
+                console.error(`[DEBUG] Attempt ${attempt} - API Call Failed. Status: ${error.response?.status}`, error.response?.data);
             } else {
-                 // This will catch errors from parseJsonFromContent if it throws one unexpectedly
-                console.error(`Attempt ${attempt} - An unexpected error occurred:`, error);
+                console.error(`[DEBUG] Attempt ${attempt} - An unexpected error occurred:`, error);
             }
         }
 
         if (attempt < MAX_RETRIES) {
-            console.log(`Retrying in ${RETRY_DELAY}ms...`);
+            console.log(`[DEBUG] Retrying in ${RETRY_DELAY}ms...`);
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         }
     }
