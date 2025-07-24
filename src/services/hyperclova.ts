@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 
 //환경 변수를 읽을 때 trim()을 사용하여 앞뒤 공백 및 줄바꿈 문자를 제거합니다.
@@ -25,22 +26,24 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 500; // 500ms
 
 /**
- * Parses a JSON object from a string, which may be wrapped in markdown code blocks.
+ * Parses a JSON object from a string, which may be wrapped in markdown code blocks or contain other text.
+ * This function is designed to be resilient to variations in AI response formatting.
  * @param content The string content to parse.
  * @returns The parsed JSON object.
+ * @throws An error if a valid JSON object cannot be parsed from the content.
  */
 function parseJsonFromContent(content: string): any {
-    // Attempt to find JSON within ```json ... ```
+    // 1. Try to extract from ```json ... ``` markdown block
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
     if (jsonMatch && jsonMatch[1]) {
         try {
             return JSON.parse(jsonMatch[1]);
         } catch (e) {
-            console.error("Failed to parse JSON from markdown block, falling back.", e);
+            console.warn("Could not parse JSON from markdown block, continuing to next method.", e);
         }
     }
 
-    // Fallback to finding the first and last brace if no markdown block is found or parsing fails
+    // 2. Try to extract content between the first '{' and the last '}'
     const firstBrace = content.indexOf('{');
     const lastBrace = content.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace > firstBrace) {
@@ -48,16 +51,17 @@ function parseJsonFromContent(content: string): any {
             const jsonString = content.substring(firstBrace, lastBrace + 1);
             return JSON.parse(jsonString);
         } catch (e) {
-             console.error("Failed to parse JSON from content between braces, falling back.", e);
+            console.warn("Could not parse JSON from brace-enclosed content, continuing to next method.", e);
         }
     }
-    
-    // As a last resort, try parsing the whole string directly
+
+    // 3. Try to parse the entire string directly as a last resort
     try {
         return JSON.parse(content);
     } catch(e) {
-        console.error("Failed to parse JSON from the entire content string.", e);
-        throw new Error(`Failed to parse JSON from AI response. Raw content: ${content}`);
+         console.error("All JSON parsing methods failed.", e);
+         // If all methods fail, throw a specific, informative error.
+         throw new Error(`Failed to parse JSON from AI response. Raw content: ${content}`);
     }
 }
 
@@ -95,7 +99,7 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
             
             return parseJsonFromContent(messageContent);
             
-        // This catch block handles network errors or API server errors (e.g., 5xx)
+        // This catch block handles network errors, API server errors (e.g., 5xx), or our custom parsing error
         } catch (error) {
             lastError = error; // Store the last error
             if (axios.isAxiosError(error)) {
