@@ -19,26 +19,26 @@ const InvestmentStrategyInputSchema = z.object({
     '5-10년',
     '10-20년',
     '20년 이상',
-  ]).describe('Time until retirement.'),
+  ]),
   incomeNeed: z.enum([
     '월 소득 필요 없음',
     '월 0원 - 100만 원',
     '월 101만 원-300만 원',
     '월 301만 원-500만 원',
     '월 500만 원 이상',
-  ]).describe('Level of income needed monthly.'),
+  ]),
   assetsSize: z.enum([
     '5천만 원 미만',
     '5천만 원-2억 5천만 원 미만',
     '2억 5천만 원-10억 원 미만',
     '10억 원-50억 원 미만',
     '50억 원 이상',
-  ]).describe('Total investment assets size.'),
+  ]),
   taxSensitivity: z.enum([
     '매우 민감한',
     '다소 민감함',
     '민감하지 않음',
-  ]).describe('Sensitivity to taxes.'),
+  ]),
   themePreference: z.enum([
     '배당',
     '성장',
@@ -46,37 +46,37 @@ const InvestmentStrategyInputSchema = z.object({
     '국내 중심',
     '해외 중심',
     '균형/분산',
-  ]).describe('Preferred investment themes.'),
+  ]),
   regionPreference: z.enum([
     '국내 주식 중심',
     '미국 주식 중심',
     '기타 선진국 주식 중심(유럽, 일본 등)',
     '신흥국 주식 중심(중국, 인도 등)',
     '글로벌 분산 투자',
-  ]).describe('Preferred investment region.'),
+  ]),
   managementStyle: z.enum([
     '적극적(직접 관리 선호)',
     '소극적/자동화(설정 후 신경 쓰지 않는 방식 선호)',
-  ]).describe('Preferred management style.'),
+  ]),
   riskTolerance: z.enum([
     '보수적(자본 보존 우선)',
     '다소 보수적',
     '중립적(위험과 수익 균형)',
     '다소 공격적',
     '공격적(높은 수익 추구, 높은 위험 감수)',
-  ]).describe('Risk tolerance level.'),
-  retirementGoals: z.string().optional().describe('User\'s written retirement goals or concerns.'),
-  otherAssets: z.string().optional().describe('Description of other assets.'),
-  name: z.string().describe('User name.'),
+  ]),
+  retirementGoals: z.string().optional(),
+  otherAssets: z.string().optional(),
+  name: z.string(),
 });
 export type InvestmentStrategyInput = z.infer<typeof InvestmentStrategyInputSchema>;
 
 const InvestmentStrategyOutputSchema = z.object({
   portfolioName: z.string(),
   assetAllocation: z.object({
-    stocks: z.number(),
-    bonds: z.number(),
-    cash: z.number(),
+    stocks: z.coerce.number(),
+    bonds: z.coerce.number(),
+    cash: z.coerce.number(),
   }),
   etfStockRecommendations: z.array(
     z.object({
@@ -109,7 +109,7 @@ export async function investmentStrategyGenerator(input: InvestmentStrategyInput
 
   **매우 중요한 규칙:**
   - 모든 응답 내용은 **반드시 한글로만 작성해야 합니다.** (티커 심볼 제외)
-  - 'assetAllocation'의 'stocks', 'bonds', 'cash' 필드는 반드시 **숫자(number)**여야 하며, 그 합은 100이 되어야 합니다.
+  - 'assetAllocation'의 'stocks', 'bonds', 'cash' 필드는 반드시 **숫자(number) 또는 숫자로 변환 가능한 문자열(string)**이어야 하며, 그 합은 100이 되어야 합니다.
   - 'etfStockRecommendations'는 반드시 **3개에서 4개의 항목을 포함하는 배열(array)**이어야 합니다.`;
 
   const userInput = `다음은 투자자 정보입니다. 이 정보를 바탕으로 투자 전략을 생성하고, 모든 설명을 한글로 작성해주세요.
@@ -130,7 +130,6 @@ export async function investmentStrategyGenerator(input: InvestmentStrategyInput
   
   const response = await callHyperClovaX(messages, systemPrompt);
 
-  // Validate the response against the Zod schema
   const parsedResponse = InvestmentStrategyOutputSchema.safeParse(response);
   if (!parsedResponse.success) {
       console.error("HyperClova X response validation failed:", parsedResponse.error);
