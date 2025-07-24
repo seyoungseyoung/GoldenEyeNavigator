@@ -8,10 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { MarketAnalysis } from '@/components/strategy/MarketAnalysis';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, CheckCircle, BarChart, BookOpen, BrainCircuit } from 'lucide-react';
+import { TrendingUp, CheckCircle, BarChart, BookOpen, BrainCircuit, Timer } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { FinancialQnA } from '@/components/strategy/FinancialQnA';
 
 export default function StrategyPage() {
   const [strategy, setStrategy] = useState<InvestmentStrategyOutput | null>(null);
@@ -197,10 +200,28 @@ export default function StrategyPage() {
             </div>
         </Card>
       </div>
+
+      <Card className="bg-card/50 border-border/50 text-center">
+        <CardContent className="p-6">
+          <h3 className="font-headline text-xl text-primary mb-2">다음 단계: 매매 타이밍 분석</h3>
+          <p className="text-muted-foreground mb-4">추천 받은 종목의 최적 매수/매도 타이밍을 AI에게 분석받아 보세요.</p>
+          <Button asChild>
+            <Link href="/timing">
+              <Timer className="mr-2 h-4 w-4" />
+              매매 타이밍 분석하러 가기
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
       
       <Separator className="my-12 bg-border/40" />
 
       <MarketAnalysis />
+
+      <Separator className="my-12 bg-border/40" />
+      
+      <FinancialQnA />
+
     </div>
   );
 }
