@@ -18,7 +18,7 @@ const FinancialQnAInputSchema = z.object({
 });
 export type FinancialQnAInput = z.infer<typeof FinancialQnAInputSchema>;
 
-export const FinancialQnAOutputSchema = z.object({
+const FinancialQnAOutputSchema = z.object({
   answer: z.string().describe('The AI\'s answer to the financial question in Korean.'),
 });
 export type FinancialQnAOutput = z.infer<typeof FinancialQnAOutputSchema>;
