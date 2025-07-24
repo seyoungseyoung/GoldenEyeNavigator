@@ -14,8 +14,8 @@ import { callHyperClovaX, Message } from '@/services/hyperclova';
 
 // This is the schema of the strategy data this Q&A agent will use as context.
 // It's imported from the validator flow to ensure consistency.
-import type { InvestmentStrategyOutput } from './investment-strategy-generator';
-import { InvestmentStrategyOutputSchema } from './investment-strategy-generator';
+import type { InvestmentStrategyOutput } from './investment-strategy-validator';
+import { InvestmentStrategyOutputSchema } from './investment-strategy-validator';
 
 
 const FinancialQnAInputSchema = z.object({

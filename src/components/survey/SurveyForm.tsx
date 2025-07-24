@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -24,34 +25,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { investmentStrategyGenerator, InvestmentStrategyInput } from '@/ai/flows/investment-strategy-generator';
+import { investmentStrategyGenerator } from '@/ai/flows/investment-strategy-generator';
+import { InvestmentStrategyInputSchema, type InvestmentStrategyInput } from '@/ai/flows/investment-strategy-validator';
 import { Loader2 } from 'lucide-react';
 
-const formSchema = z.object({
-  retirementHorizon: z.enum([
-    '이미 은퇴함', '5년 미만', '5-10년', '10-20년', '20년 이상'
-  ], { required_error: "은퇴 시기를 선택해주세요." }),
-  incomeNeed: z.enum([
-    '월 소득 필요 없음', '월 0원 - 100만 원', '월 101만 원-300만 원', '월 301만 원-500만 원', '월 500만 원 이상'
-  ], { required_error: "현금흐름 필요성을 선택해주세요." }),
-  assetsSize: z.enum([
-    '5천만 원 미만', '5천만 원-2억 5천만 원 미만', '2억 5천만 원-10억 원 미만', '10억 원-50억 원 미만', '50억 원 이상'
-  ], { required_error: "투자 자산 규모를 선택해주세요." }),
-  taxSensitivity: z.enum(['매우 민감한', '다소 민감함', '민감하지 않음'], { required_error: "세금 민감도를 선택해주세요." }),
-  themePreference: z.enum([
-    '배당', '성장', 'ESG(환경, 사회, 지배구조)', '국내 중심', '해외 중심', '균형/분산'
-  ], { required_error: "투자 테마 선호도를 선택해주세요." }),
-  regionPreference: z.enum([
-    '국내 주식 중심', '미국 주식 중심', '기타 선진국 주식 중심(유럽, 일본 등)', '신흥국 주식 중심(중국, 인도 등)', '글로벌 분산 투자'
-  ], { required_error: "투자 지역 선호도를 선택해주세요." }),
-  managementStyle: z.enum(['적극적(직접 관리 선호)', '소극적/자동화(설정 후 신경 쓰지 않는 방식 선호)'], { required_error: "관리 스타일을 선택해주세요." }),
-  riskTolerance: z.enum([
-    '보수적(자본 보존 우선)', '다소 보수적', '중립적(위험과 수익 균형)', '다소 공격적', '공격적(높은 수익 추구, 높은 위험 감수)'
-  ], { required_error: "위험 감수 수준을 선택해주세요." }),
-  retirementGoals: z.string().optional(),
-  otherAssets: z.string().optional(),
-  name: z.string().min(1, { message: '이름을 입력해주세요.' }),
-});
+const formSchema = InvestmentStrategyInputSchema;
 
 const formFields = [
     { name: 'retirementHorizon', label: '1. 은퇴 시기', options: ['이미 은퇴함', '5년 미만', '5-10년', '10-20년', '20년 이상'] },

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -10,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { financialQnA, FinancialQnAOutput, FinancialQnAInput } from '@/ai/flows/financial-qa-flow';
-import type { InvestmentStrategyOutput } from '@/ai/flows/investment-strategy-generator';
+import type { InvestmentStrategyOutput } from '@/ai/flows/investment-strategy-validator';
 import { Loader2, Bot, MessageSquare, Sparkles } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 
