@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -200,6 +199,10 @@ export default function StrategyPage() {
             </div>
         </Card>
       </div>
+      
+      <Separator className="my-12 bg-border/40" />
+      
+      <MarketAnalysis />
 
       <Card className="bg-card/50 border-border/50 text-center">
         <CardContent className="p-6">
@@ -213,14 +216,10 @@ export default function StrategyPage() {
           </Button>
         </CardContent>
       </Card>
-      
-      <Separator className="my-12 bg-border/40" />
-
-      <MarketAnalysis />
 
       <Separator className="my-12 bg-border/40" />
       
-      <FinancialQnA />
+      <FinancialQnA strategy={strategy} />
 
     </div>
   );

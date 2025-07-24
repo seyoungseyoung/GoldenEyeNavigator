@@ -1,40 +1,65 @@
-
 'use client';
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodResolver from '@hookform/resolvers/zod';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { financialQnA, FinancialQnAOutput, FinancialQnAInput } from '@/ai/flows/financial-qa-flow';
+import type { InvestmentStrategyOutput } from '@/ai/flows/investment-strategy-generator';
 import { Loader2, Bot, MessageSquare, Sparkles } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 
-const FinancialQnAInputSchema = z.object({
+const FinancialQnAFormSchema = z.object({
   question: z.string().min(5, { message: "최소 5자 이상의 질문을 입력해주세요." }),
 });
 
-export function FinancialQnA() {
+interface FinancialQnAProps {
+  strategy: InvestmentStrategyOutput | null;
+}
+
+export function FinancialQnA({ strategy }: FinancialQnAProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<FinancialQnAOutput | null>(null);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof FinancialQnAInputSchema>>({
-    resolver: zodResolver(FinancialQnAInputSchema),
+  const form = useForm<z.infer<typeof FinancialQnAFormSchema>>({
+    resolver: zodResolver(FinancialQnAFormSchema),
     defaultValues: {
       question: "",
     }
   });
 
-  async function onSubmit(values: FinancialQnAInput) {
+  async function onSubmit(values: z.infer<typeof FinancialQnAFormSchema>) {
+    if (!strategy) {
+      toast({
+        variant: "destructive",
+        title: "오류",
+        description: "투자 전략 정보가 없어 질문할 수 없습니다.",
+      });
+      return;
+    }
+    
     setIsLoading(true);
     setResult(null);
+
+    const inputForAI: FinancialQnAInput = {
+      question: values.question,
+      investmentStrategy: {
+        portfolioName: strategy.portfolioName,
+        assetAllocation: strategy.assetAllocation,
+        etfStockRecommendations: strategy.etfStockRecommendations,
+        tradingStrategy: strategy.tradingStrategy,
+        strategyExplanation: strategy.strategyExplanation,
+      }
+    };
+    
     try {
-      const insight = await financialQnA(values);
+      const insight = await financialQnA(inputForAI);
       setResult(insight);
     } catch (error) {
       console.error('Error in Financial Q&A:', error);
@@ -52,10 +77,10 @@ export function FinancialQnA() {
     <div className="space-y-8">
       <div className="text-center">
         <h2 className="font-headline text-3xl md:text-4xl font-bold text-primary">
-          금융 Q&amp;A
+          AI에게 내 전략에 대해 질문하기
         </h2>
         <p className="mt-2 text-lg text-muted-foreground">
-          투자에 대해 궁금한 점이 있으신가요? AI에게 무엇이든 물어보세요.
+          생성된 투자 전략에 대해 궁금한 점이 있으신가요? AI에게 무엇이든 물어보세요.
         </p>
       </div>
 
@@ -71,7 +96,7 @@ export function FinancialQnA() {
                     <FormControl>
                       <Textarea
                         rows={4}
-                        placeholder="예: 지금 주식시장 조정이 왔는데 제 전략을 바꿔야 할까요?"
+                        placeholder="예: 제 포트폴리오의 현금 비중이 높은 이유는 무엇인가요? 또는 추천해주신 AAPL 주식에 대해 더 자세히 설명해주세요."
                         {...field}
                       />
                     </FormControl>
@@ -80,7 +105,7 @@ export function FinancialQnA() {
                 )}
               />
               <div className="flex justify-end">
-                <Button type="submit" disabled={isLoading}>
+                <Button type="submit" disabled={isLoading || !strategy}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

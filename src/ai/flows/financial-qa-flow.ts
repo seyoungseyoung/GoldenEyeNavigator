@@ -1,10 +1,9 @@
-
 'use server';
 
 /**
  * @fileOverview A financial Q&A AI agent.
  *
- * - financialQnA - A function that answers user's financial questions.
+ * - financialQnA - A function that answers user's financial questions based on their strategy.
  * - FinancialQnAInput - The input type for the financialQnA function.
  * - FinancialQnAOutput - The return type for the financialQnA function.
  */
@@ -12,14 +11,34 @@
 import { z } from 'zod';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import type { InvestmentStrategyOutput } from './investment-strategy-generator';
+
+const InvestmentStrategySchemaForQnA = z.object({
+  portfolioName: z.string(),
+  assetAllocation: z.object({
+    stocks: z.number(),
+    bonds: z.number(),
+    cash: z.number(),
+  }),
+  etfStockRecommendations: z.array(
+    z.object({
+      ticker: z.string(),
+      rationale: z.string(),
+    })
+  ),
+  tradingStrategy: z.string(),
+  strategyExplanation: z.string(),
+});
+
 
 const FinancialQnAInputSchema = z.object({
-  question: z.string().describe('The user\'s financial question.'),
+  question: z.string().describe("The user's financial question."),
+  investmentStrategy: InvestmentStrategySchemaForQnA.describe("The user's personalized investment strategy to be used as context.")
 });
 export type FinancialQnAInput = z.infer<typeof FinancialQnAInputSchema>;
 
 const FinancialQnAOutputSchema = z.object({
-  answer: z.string().describe('The AI\'s answer to the financial question in Korean.'),
+  answer: z.string().describe("The AI's answer to the financial question in Korean, based on the provided strategy."),
 });
 export type FinancialQnAOutput = z.infer<typeof FinancialQnAOutputSchema>;
 
@@ -32,13 +51,19 @@ export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQ
   
   const jsonSchema = zodToJsonSchema(FinancialQnAOutputSchema, "FinancialQnAOutputSchema");
 
-  const systemPrompt = `당신은 사용자의 금융 관련 질문에 답변하는 친절하고 유능한 AI 금융 어드바이저입니다.
+  const systemPrompt = `당신은 사용자의 개인 투자 전략을 완벽하게 파악하고 있는, 친절하고 유능한 AI 금융 어드바이저입니다.
   
-  당신은 방대한 금융 지식을 학습했으며, 일반적인 투자 상식, 은퇴 설계 원칙, 시장 용어, 경제 현상 등 광범위한 주제에 대해 답변할 수 있습니다.
-  
+  사용자의 질문에 답변할 때, 반드시 아래에 제공된 **사용자의 맞춤 투자 전략 정보**를 최우선 근거로 삼아야 합니다.
+  사용자의 자산 배분, 추천 종목, 거래 전략 등을 참고하여 구체적이고 개인화된 답변을 제공해주세요.
+
+  **사용자 맞춤 투자 전략 정보:**
+  \`\`\`json
+  ${JSON.stringify(input.investmentStrategy, null, 2)}
+  \`\`\`
+
   **규칙:**
   - 특정 종목에 대한 매수/매도 추천이나 직접적인 투자 자문을 해서는 안 됩니다.
-  - 대신, 일반적인 원칙, 개념 설명, 고려해야 할 사항들을 중심으로 답변해야 합니다.
+  - 대신, 제공된 전략의 틀 안에서 원칙, 개념 설명, 고려해야 할 사항들을 중심으로 답변해야 합니다.
   - 사용자가 이해하기 쉽게, 전문 용어를 풀어서 친절한 어조로 설명해주세요.
   - 모든 답변은 반드시 한글로 작성해야 합니다.
 
@@ -50,7 +75,7 @@ export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQ
   \`\`\`
   `;
   
-  const userInput = `다음 금융 관련 질문에 답변해주세요: "${input.question}"`;
+  const userInput = `내 투자 전략을 바탕으로, 다음 금융 관련 질문에 답변해주세요: "${input.question}"`;
   const messages: Message[] = [{ role: 'user', content: userInput }];
 
   try {
