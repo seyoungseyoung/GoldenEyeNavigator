@@ -74,9 +74,29 @@ export async function generateStockSignal(
 
 **출력은 반드시 다음 JSON 스키마를 따르는 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.**
 
-**출력 JSON 스키마:**
+**출력 JSON 스키마 (예시):**
 \`\`\`json
-${JSON.stringify(jsonSchema, null, 2)}
+{
+  "recommendedIndicators": [
+    {
+      "name": "RSI",
+      "fullName": "상대강도지수",
+      "params": { "period": 14, "overbought": 70, "oversold": 30 }
+    },
+    {
+      "name": "MACD",
+      "fullName": "이동평균 수렴-확산",
+      "params": { "fastPeriod": 12, "slowPeriod": 26, "signalPeriod": 9 }
+    },
+    {
+      "name": "BollingerBands",
+      "fullName": "볼린저 밴드",
+      "params": { "period": 20, "stdDev": 2 }
+    }
+  ],
+  "finalSignal": "매수",
+  "rationale": "최근 주가 흐름을 분석한 결과, RSI 지표가 과매도 구간에서 벗어나고 있으며, MACD 골든 크로스가 임박한 것으로 보입니다. 볼린저 밴드 하단을 지지선으로 삼아 반등할 가능성이 높아 종합적으로 '매수' 신호를 판단했습니다."
+}
 \`\`\`
 
 **매우 중요한 규칙:**

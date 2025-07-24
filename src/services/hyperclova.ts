@@ -23,7 +23,7 @@ export interface Message {
 }
 
 const MAX_RETRIES = 3;
-const RETRY_DELAY = 500; // 500ms
+const RETRY_DELAY = 1000; // 1 second
 
 /**
  * Parses a JSON object from a string, which may be wrapped in markdown code blocks or contain other text.
@@ -33,17 +33,17 @@ const RETRY_DELAY = 500; // 500ms
  * @throws An error if a valid JSON object cannot be parsed from the content.
  */
 function parseJsonFromContent(content: string): any {
-    // 1. Try to extract from ```json ... ``` markdown block
+    // Attempt to extract from ```json ... ``` markdown block first.
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
     if (jsonMatch && jsonMatch[1]) {
         try {
             return JSON.parse(jsonMatch[1]);
         } catch (e) {
-            console.warn("Could not parse JSON from markdown block, continuing to next method.", e);
+            console.warn("Could not parse JSON from markdown block, will try other methods.", e);
         }
     }
 
-    // 2. Try to extract content between the first '{' and the last '}'
+    // If markdown fails, try to find the first '{' and last '}'
     const firstBrace = content.indexOf('{');
     const lastBrace = content.lastIndexOf('}');
     if (firstBrace !== -1 && lastBrace > firstBrace) {
@@ -51,15 +51,14 @@ function parseJsonFromContent(content: string): any {
             const jsonString = content.substring(firstBrace, lastBrace + 1);
             return JSON.parse(jsonString);
         } catch (e) {
-            console.warn("Could not parse JSON from brace-enclosed content, continuing to next method.", e);
+            console.warn("Could not parse JSON from brace-enclosed content, will try parsing the whole string.", e);
         }
     }
 
-    // 3. Try to parse the entire string directly as a last resort
+    // As a last resort, try to parse the entire string.
     try {
         return JSON.parse(content);
     } catch(e) {
-         console.error("All JSON parsing methods failed.", e);
          // If all methods fail, throw a specific, informative error.
          throw new Error(`Failed to parse JSON from AI response. Raw content: ${content}`);
     }
@@ -68,7 +67,7 @@ function parseJsonFromContent(content: string): any {
 
 /**
  * Calls the HyperClova X API with the given messages and system prompt.
- * Implements a retry mechanism to handle transient errors.
+ * Implements a retry mechanism that triggers on both network errors and content parsing errors.
  * @param messages An array of messages to send to the model.
  * @param systemPrompt The system prompt to guide the model's behavior.
  * @returns The content of the assistant's response.
@@ -93,37 +92,38 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
         try {
+            // Step 1: Call the API
             const response = await axios.post(URL, payload, { headers });
-            const result = response.data;
-            const messageContent = result.result.message.content;
+            const messageContent = response.data.result.message.content;
             
-            return parseJsonFromContent(messageContent);
+            // Step 2: Try to parse the response. This might throw an error.
+            const parsedJson = parseJsonFromContent(messageContent);
             
-        // This catch block handles network errors, API server errors (e.g., 5xx), or our custom parsing error
+            // If both steps succeed, return the result.
+            return parsedJson;
+            
         } catch (error) {
-            lastError = error; // Store the last error
+            lastError = error;
             if (axios.isAxiosError(error)) {
-                console.error(`Attempt ${attempt} failed for HyperClova X API call. Status: ${error.response?.status}`, error.response?.data);
+                console.error(`Attempt ${attempt} - API Call Failed. Status: ${error.response?.status}`, error.response?.data);
             } else {
-                console.error(`Attempt ${attempt} failed for HyperClova X API call:`, error);
+                 // This will catch errors from parseJsonFromContent
+                console.error(`Attempt ${attempt} - Content Parsing Failed:`, error);
             }
 
-
-            if (attempt === MAX_RETRIES) {
-                // 마지막 시도에서도 실패하면 최종적으로 에러를 던집니다.
-                let errorMessage = "Failed to get response from HyperClova X API after multiple retries.";
-                if (axios.isAxiosError(lastError) && lastError.response) {
-                    // 서버가 제공한 구체적인 에러 메시지를 포함합니다.
-                    errorMessage = `Failed to get response from HyperClova X API. Status: ${lastError.response.status}. Response: ${JSON.stringify(lastError.response.data)}`;
-                } else if (lastError instanceof Error) {
-                    errorMessage = lastError.message;
-                }
-                throw new Error(errorMessage);
+            if (attempt < MAX_RETRIES) {
+                console.log(`Retrying in ${RETRY_DELAY}ms...`);
+                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
             }
-            // 재시도 전에 잠시 대기합니다.
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         }
     }
-    // 루프가 비정상적으로 종료될 경우를 대비한 최종 에러 처리
-    throw new Error("Failed to get response from HyperClova X API.");
+
+    // If all retries fail, throw the last captured error.
+    let finalErrorMessage = "Failed to get a valid response from HyperClova X API after multiple retries.";
+    if (axios.isAxiosError(lastError) && lastError.response) {
+        finalErrorMessage = `API Error. Status: ${lastError.response.status}. Response: ${JSON.stringify(lastError.response.data)}`;
+    } else if (lastError instanceof Error) {
+        finalErrorMessage = lastError.message; // This will include the "Failed to parse JSON" message
+    }
+    throw new Error(finalErrorMessage);
 }

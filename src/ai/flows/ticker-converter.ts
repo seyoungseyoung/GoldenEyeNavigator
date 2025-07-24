@@ -39,10 +39,34 @@ export async function convertToTicker(input: TickerConversionInput): Promise<Tic
 
 **출력은 반드시 다음 JSON 스키마를 따르는 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.**
 
-**출력 JSON 스키마:**
-\`\`\`json
-${JSON.stringify(jsonSchema, null, 2)}
-\`\`\`
+**입출력 예시:**
+- **사용자 입력:** "삼성전자"
+- **AI 출력(JSON):**
+  \`\`\`json
+  {
+    "success": true,
+    "ticker": "005930.KS",
+    "reason": "'삼성전자'는 한국 코스피 시장의 '005930.KS' 티커로 변환되었습니다."
+  }
+  \`\`\`
+- **사용자 입력:** "애플"
+- **AI 출력(JSON):**
+  \`\`\`json
+  {
+    "success": true,
+    "ticker": "AAPL",
+    "reason": "'애플'은 미국 나스닥 시장의 'AAPL' 티커로 변환되었습니다."
+  }
+  \`\`\`
+- **사용자 입력:** "없는회사"
+- **AI 출력(JSON):**
+  \`\`\`json
+  {
+    "success": false,
+    "ticker": null,
+    "reason": "'없는회사'에 해당하는 주식 티커를 찾을 수 없습니다."
+  }
+  \`\`\`
 `;
 
   const userInput = `다음 사용자 입력을 주식 티커로 변환해주세요: "${input.query}"`;
