@@ -29,39 +29,33 @@ const RETRY_DELAY = 1000; // 1 second
  * Parses a JSON object from a string, which may be wrapped in markdown code blocks or contain other text.
  * This function is designed to be resilient to variations in AI response formatting.
  * @param content The string content to parse.
- * @returns The parsed JSON object.
- * @throws An error if a valid JSON object cannot be parsed from the content.
+ * @returns The parsed JSON object or null if parsing fails.
  */
 function parseJsonFromContent(content: string): any {
-    // Attempt to extract from ```json ... ``` markdown block first.
-    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
-    if (jsonMatch && jsonMatch[1]) {
-        try {
+    try {
+        // Attempt to extract from ```json ... ``` markdown block first.
+        const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
             return JSON.parse(jsonMatch[1]);
-        } catch (e) {
-            console.warn("Could not parse JSON from markdown block, will try other methods.", e);
         }
+    } catch (e) {
+        console.warn("Could not parse JSON from markdown block, will try other methods.");
     }
 
-    // If markdown fails, try to find the first '{' and last '}'
-    const firstBrace = content.indexOf('{');
-    const lastBrace = content.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace > firstBrace) {
-        try {
+    try {
+        // If markdown fails, try to find the first '{' and last '}'
+        const firstBrace = content.indexOf('{');
+        const lastBrace = content.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace > firstBrace) {
             const jsonString = content.substring(firstBrace, lastBrace + 1);
             return JSON.parse(jsonString);
-        } catch (e) {
-            console.warn("Could not parse JSON from brace-enclosed content, will try parsing the whole string.", e);
         }
+    } catch (e) {
+        console.warn("Could not parse JSON from brace-enclosed content, will try parsing the whole string.");
     }
-
-    // As a last resort, try to parse the entire string.
-    try {
-        return JSON.parse(content);
-    } catch(e) {
-         // If all methods fail, throw a specific, informative error.
-         throw new Error(`Failed to parse JSON from AI response. Raw content: ${content}`);
-    }
+    
+    // If no valid JSON structure is found, return null. It might be a plain text response.
+    return null;
 }
 
 
@@ -70,9 +64,10 @@ function parseJsonFromContent(content: string): any {
  * Implements a retry mechanism that triggers on both network errors and content parsing errors.
  * @param messages An array of messages to send to the model.
  * @param systemPrompt The system prompt to guide the model's behavior.
- * @returns The content of the assistant's response.
+ * @param jsonOutputFormat The key to wrap the plain text response in if the AI doesn't return JSON. e.g., "answer".
+ * @returns The content of the assistant's response as a JSON object.
  */
-export async function callHyperClovaX(messages: Message[], systemPrompt: string): Promise<any> {
+export async function callHyperClovaX(messages: Message[], systemPrompt: string, jsonOutputFormat?: string): Promise<any> {
     const payload = {
         stream: false,
         topK: 0,
@@ -96,25 +91,39 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
             const response = await axios.post(URL, payload, { headers });
             const messageContent = response.data.result.message.content;
             
-            // Step 2: Try to parse the response. This might throw an error.
+            // Step 2: Try to parse the response as JSON.
             const parsedJson = parseJsonFromContent(messageContent);
             
-            // If both steps succeed, return the result.
-            return parsedJson;
-            
+            if (parsedJson) {
+                // If parsing succeeds, return the valid JSON object.
+                return parsedJson;
+            }
+
+            // Step 3: If no JSON is found, and a jsonOutputFormat key is provided,
+            // assume the response is plain text and wrap it.
+            if (jsonOutputFormat) {
+                console.log(`Attempt ${attempt} - Received plain text. Wrapping with key "${jsonOutputFormat}".`);
+                return { [jsonOutputFormat]: messageContent.trim() };
+            }
+
+            // Step 4: If no JSON is found and no format key is provided, it's an invalid state.
+            // We consider this a failure and will trigger a retry.
+            lastError = new Error(`AI returned a non-JSON response, and no output format was specified. Raw content: ${messageContent}`);
+            console.error(`Attempt ${attempt} failed: ${lastError.message}`);
+
         } catch (error) {
             lastError = error;
             if (axios.isAxiosError(error)) {
                 console.error(`Attempt ${attempt} - API Call Failed. Status: ${error.response?.status}`, error.response?.data);
             } else {
-                 // This will catch errors from parseJsonFromContent
-                console.error(`Attempt ${attempt} - Content Parsing Failed:`, error);
+                 // This will catch errors from parseJsonFromContent if it throws one unexpectedly
+                console.error(`Attempt ${attempt} - An unexpected error occurred:`, error);
             }
+        }
 
-            if (attempt < MAX_RETRIES) {
-                console.log(`Retrying in ${RETRY_DELAY}ms...`);
-                await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-            }
+        if (attempt < MAX_RETRIES) {
+            console.log(`Retrying in ${RETRY_DELAY}ms...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
         }
     }
 
@@ -123,7 +132,7 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
     if (axios.isAxiosError(lastError) && lastError.response) {
         finalErrorMessage = `API Error. Status: ${lastError.response.status}. Response: ${JSON.stringify(lastError.response.data)}`;
     } else if (lastError instanceof Error) {
-        finalErrorMessage = lastError.message; // This will include the "Failed to parse JSON" message
+        finalErrorMessage = lastError.message;
     }
     throw new Error(finalErrorMessage);
 }

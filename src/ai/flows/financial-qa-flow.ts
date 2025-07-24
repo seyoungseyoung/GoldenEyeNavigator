@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -61,14 +62,15 @@ export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQ
   - 대신, 제공된 전략의 틀 안에서 원칙, 개념 설명, 고려해야 할 사항들을 중심으로 답변해야 합니다.
   - 사용자가 이해하기 쉽게, 전문 용어를 풀어서 친절한 어조로 설명해주세요.
   - 모든 답변은 반드시 한글로 작성해야 합니다.
-  - 출력은 반드시 {"answer": "여기에 답변 내용"} 형태의 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.
+  - **다른 어떤 텍스트도 포함하지 말고, 오직 답변 내용만 출력하세요.**
   `;
   
   const userInput = `내 투자 전략을 바탕으로, 다음 금융 관련 질문에 답변해주세요: "${input.question}"`;
   const messages: Message[] = [{ role: 'user', content: userInput }];
 
   try {
-    const response = await callHyperClovaX(messages, systemPrompt);
+    // Let the service handle wrapping the text response into a JSON object with the "answer" key.
+    const response = await callHyperClovaX(messages, systemPrompt, 'answer');
     
     const parsedResponse = FinancialQnAOutputSchema.safeParse(response);
 
