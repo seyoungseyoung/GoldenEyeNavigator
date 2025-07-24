@@ -12,7 +12,6 @@
  */
 
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
 import { INDICATORS } from '@/services/indicatorService';
 
@@ -52,10 +51,8 @@ export async function generateStockSignal(
   input: StockSignalInput
 ): Promise<StockSignalOutput> {
 
-  const jsonSchema = zodToJsonSchema(StockSignalOutputSchema, "StockSignalOutputSchema");
-
   const systemPrompt = `당신은 한국인을 상대하는 주식 기술 분석 전문 AI 어시스턴트입니다.
-제공된 주식 티커와 거래 전략을 바탕으로, 가장 적합한 기술 지표 3개를 선택하고, 그 지표를 계산하는 데 필요한 매개변수(parameter)를 결정해야 합니다.
+제공된 주식 티커, 거래 전략, 그리고 **최신 주가 데이터(참고용)**를 바탕으로, 가장 적합한 기술 지표 3개를 선택하고, 그 지표를 계산하는 데 필요한 매개변수(parameter)를 결정해야 합니다.
 
 **사용 가능한 기술 지표 및 매개변수:**
 - **RSI (상대강도지수):**
@@ -74,30 +71,35 @@ export async function generateStockSignal(
 
 **출력은 반드시 다음 JSON 스키마를 따르는 유효한 JSON 객체여야만 합니다. JSON 객체 외에 다른 텍스트는 절대 포함하지 마십시오.**
 
-**출력 JSON 스키마 (예시):**
-\`\`\`json
-{
-  "recommendedIndicators": [
-    {
-      "name": "RSI",
-      "fullName": "상대강도지수",
-      "params": { "period": 14, "overbought": 70, "oversold": 30 }
-    },
-    {
-      "name": "MACD",
-      "fullName": "이동평균 수렴-확산",
-      "params": { "fastPeriod": 12, "slowPeriod": 26, "signalPeriod": 9 }
-    },
-    {
-      "name": "BollingerBands",
-      "fullName": "볼린저 밴드",
-      "params": { "period": 20, "stdDev": 2 }
-    }
-  ],
-  "finalSignal": "매수",
-  "rationale": "최근 주가 흐름을 분석한 결과, RSI 지표가 과매도 구간에서 벗어나고 있으며, MACD 골든 크로스가 임박한 것으로 보입니다. 볼린저 밴드 하단을 지지선으로 삼아 반등할 가능성이 높아 종합적으로 '매수' 신호를 판단했습니다."
-}
-\`\`\`
+**입출력 예시:**
+- **사용자 입력:**
+  - 티커: "AAPL"
+  - 거래 전략: "단기 변동성을 이용한 저점 매수"
+  - 최신 주가 데이터 (참고용): 최근 10일치 종가 데이터
+- **AI 출력 (JSON):**
+  \`\`\`json
+  {
+    "recommendedIndicators": [
+      {
+        "name": "RSI",
+        "fullName": "상대강도지수",
+        "params": { "period": 14, "overbought": 70, "oversold": 30 }
+      },
+      {
+        "name": "MACD",
+        "fullName": "이동평균 수렴-확산",
+        "params": { "fastPeriod": 12, "slowPeriod": 26, "signalPeriod": 9 }
+      },
+      {
+        "name": "BollingerBands",
+        "fullName": "볼린저 밴드",
+        "params": { "period": 20, "stdDev": 2 }
+      }
+    ],
+    "finalSignal": "매수",
+    "rationale": "최근 주가 흐름을 분석한 결과, RSI 지표가 과매도 구간에서 벗어나고 있으며, MACD 골든 크로스가 임박한 것으로 보입니다. 볼린저 밴드 하단을 지지선으로 삼아 반등할 가능성이 높아 종합적으로 '매수' 신호를 판단했습니다."
+  }
+  \`\`\`
 
 **매우 중요한 규칙:**
 - \`recommendedIndicators\` 배열에는 **정확히 3개의 지표** 객체가 포함되어야 합니다.
@@ -117,20 +119,23 @@ export async function generateStockSignal(
   const messages: Message[] = [{ role: 'user', content: userInput }];
 
   try {
+    // Let the service handle parsing and potential retries
     const signalResult = await callHyperClovaX(messages, systemPrompt);
     const parsedResponse = StockSignalOutputSchema.safeParse(signalResult);
 
     if (!parsedResponse.success) {
         const errorDetails = JSON.stringify(parsedResponse.error.flatten(), null, 2);
-        console.error("HyperClova X response validation failed:", errorDetails);
+        console.error("[DEBUG] HyperClova X response validation failed:", errorDetails);
         throw new Error(`AI로부터 유효하지 않은 데이터 구조를 받았습니다. 오류: ${errorDetails}`);
     }
     
     return parsedResponse.data;
 
   } catch(error) {
-    console.error("Error in generateStockSignal flow:", error);
+    console.error("[DEBUG] Error in generateStockSignal flow:", error);
     // Re-throw the error to be caught by the calling component
     throw error;
   }
 }
+
+    
