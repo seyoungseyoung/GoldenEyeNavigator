@@ -75,7 +75,7 @@ export async function generateStockSignal(
 - **사용자 입력:**
   - 티커: "AAPL"
   - 거래 전략: "단기 변동성을 이용한 저점 매수"
-  - 최신 주가 데이터 (참고용): 최근 10일치 종가 데이터
+  - 최신 주가 데이터 (참고용): 최근 6개월치 종가 데이터
 - **AI 출력 (JSON):**
   \`\`\`json
   {
@@ -109,7 +109,8 @@ export async function generateStockSignal(
 `;
 
   // We only send the last few data points to the AI for context, to avoid large payloads.
-  const recentData = input.historicalData.slice(-10).map(d => ({date: d.date, close: d.close}));
+  // 6 months is about 126 trading days.
+  const recentData = input.historicalData.slice(-126).map(d => ({date: d.date, close: d.close}));
   const userInput = `
 주식 티커: ${input.ticker}
 거래 전략: ${input.tradingStrategy || '지정되지 않음'}
