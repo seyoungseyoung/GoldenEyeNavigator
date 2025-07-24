@@ -12,22 +12,10 @@
 import { z } from 'zod';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
 
-const InvestmentStrategySchemaForQnA = z.object({
-  portfolioName: z.string(),
-  assetAllocation: z.object({
-    stocks: z.number(),
-    bonds: z.number(),
-    cash: z.number(),
-  }),
-  etfStockRecommendations: z.array(
-    z.object({
-      ticker: z.string(),
-      rationale: z.string(),
-    })
-  ),
-  tradingStrategy: z.string(),
-  strategyExplanation: z.string(),
-});
+// This is the schema of the strategy data this Q&A agent will use as context.
+// It's imported from the generator flow to ensure consistency.
+import type { InvestmentStrategyOutput } from './investment-strategy-generator';
+const InvestmentStrategySchemaForQnA = z.custom<InvestmentStrategyOutput>();
 
 
 const FinancialQnAInputSchema = z.object({
@@ -69,7 +57,8 @@ export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQ
   const messages: Message[] = [{ role: 'user', content: userInput }];
 
   try {
-    // Let the service handle wrapping the text response into a JSON object with the "answer" key.
+    // The `callHyperClovaX` service will handle wrapping the plain text response 
+    // into a JSON object with the "answer" key.
     const response = await callHyperClovaX(messages, systemPrompt, 'answer');
     
     const parsedResponse = FinancialQnAOutputSchema.safeParse(response);
