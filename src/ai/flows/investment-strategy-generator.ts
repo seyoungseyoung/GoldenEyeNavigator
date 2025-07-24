@@ -83,7 +83,7 @@ const InvestmentStrategyOutputSchema = z.object({
       ticker: z.string(),
       rationale: z.string(),
     })
-  ).min(3).max(4),
+  ),
   tradingStrategy: z.string(),
   strategyExplanation: z.string(),
 });
