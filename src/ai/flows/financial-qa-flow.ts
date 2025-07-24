@@ -24,6 +24,12 @@ const FinancialQnAOutputSchema = z.object({
 export type FinancialQnAOutput = z.infer<typeof FinancialQnAOutputSchema>;
 
 export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQnAOutput> {
+  // 1. Validate the input from the client
+  const parsedInput = FinancialQnAInputSchema.safeParse(input);
+  if (!parsedInput.success) {
+    throw new Error(`Invalid input provided to financialQnA flow: ${parsedInput.error.message}`);
+  }
+  
   const jsonSchema = zodToJsonSchema(FinancialQnAOutputSchema, "FinancialQnAOutputSchema");
 
   const systemPrompt = `당신은 사용자의 금융 관련 질문에 답변하는 친절하고 유능한 AI 금융 어드바이저입니다.
@@ -49,6 +55,8 @@ export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQ
 
   try {
     const response = await callHyperClovaX(messages, systemPrompt);
+    
+    // 2. Validate the response from the AI
     const parsedResponse = FinancialQnAOutputSchema.safeParse(response);
 
     if (!parsedResponse.success) {
@@ -61,6 +69,7 @@ export async function financialQnA(input: FinancialQnAInput): Promise<FinancialQ
 
   } catch (error) {
     console.error("Error in financialQnA flow:", error);
+    // Re-throw the error to be handled by the client
     throw error;
   }
 }
