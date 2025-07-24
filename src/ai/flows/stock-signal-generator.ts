@@ -105,6 +105,7 @@ export async function generateStockSignal(
 - \`recommendedIndicators\` 배열에는 **정확히 3개의 지표** 객체가 포함되어야 합니다.
 - 각 지표 객체의 \`name\` 필드는 반드시 ["RSI", "MACD", "BollingerBands", "Stochastic"] 중 하나여야 합니다.
 - \`params\` 객체는 위에서 설명한 각 지표의 매개변수 형식을 정확히 따라야 합니다.
+- \`finalSignal\` 필드는 **반드시 "강한 매수", "매수", "보류", "매도", "강한 매도" 5가지 값 중 하나**여야 합니다. '홀딩'이나 '관망'과 같은 다른 단어를 사용해서는 안 됩니다.
 - 모든 설명(\`rationale\`, \`fullName\`)은 한글로 작성해야 합니다.
 `;
 
