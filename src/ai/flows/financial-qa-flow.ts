@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
-export const FinancialQnAInputSchema = z.object({
+const FinancialQnAInputSchema = z.object({
   question: z.string().describe('The user\'s financial question.'),
 });
 export type FinancialQnAInput = z.infer<typeof FinancialQnAInputSchema>;

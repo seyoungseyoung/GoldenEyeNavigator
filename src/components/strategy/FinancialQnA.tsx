@@ -10,9 +10,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { financialQnA, FinancialQnAOutput, FinancialQnAInputSchema } from '@/ai/flows/financial-qa-flow';
+import { financialQnA, FinancialQnAOutput, FinancialQnAInput } from '@/ai/flows/financial-qa-flow';
 import { Loader2, Bot, MessageSquare, Sparkles } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
+
+const FinancialQnAInputSchema = z.object({
+  question: z.string().min(5, { message: "최소 5자 이상의 질문을 입력해주세요." }),
+});
 
 export function FinancialQnA() {
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +30,7 @@ export function FinancialQnA() {
     }
   });
 
-  async function onSubmit(values: z.infer<typeof FinancialQnAInputSchema>) {
+  async function onSubmit(values: FinancialQnAInput) {
     setIsLoading(true);
     setResult(null);
     try {
