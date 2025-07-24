@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 //환경 변수를 읽을 때 trim()을 사용하여 앞뒤 공백 및 줄바꿈 문자를 제거합니다.
@@ -26,6 +25,44 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 500; // 500ms
 
 /**
+ * Parses a JSON object from a string, which may be wrapped in markdown code blocks.
+ * @param content The string content to parse.
+ * @returns The parsed JSON object.
+ */
+function parseJsonFromContent(content: string): any {
+    // Attempt to find JSON within ```json ... ```
+    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonMatch && jsonMatch[1]) {
+        try {
+            return JSON.parse(jsonMatch[1]);
+        } catch (e) {
+            console.error("Failed to parse JSON from markdown block, falling back.", e);
+        }
+    }
+
+    // Fallback to finding the first and last brace if no markdown block is found or parsing fails
+    const firstBrace = content.indexOf('{');
+    const lastBrace = content.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+        try {
+            const jsonString = content.substring(firstBrace, lastBrace + 1);
+            return JSON.parse(jsonString);
+        } catch (e) {
+             console.error("Failed to parse JSON from content between braces, falling back.", e);
+        }
+    }
+    
+    // As a last resort, try parsing the whole string directly
+    try {
+        return JSON.parse(content);
+    } catch(e) {
+        console.error("Failed to parse JSON from the entire content string.", e);
+        throw new Error(`Failed to parse JSON from AI response. Raw content: ${content}`);
+    }
+}
+
+
+/**
  * Calls the HyperClova X API with the given messages and system prompt.
  * Implements a retry mechanism to handle transient errors.
  * @param messages An array of messages to send to the model.
@@ -37,7 +74,7 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
         stream: false,
         topK: 0,
         includeAiFilters: true,
-        maxTokens: 4096,
+        maxTokens: 2048,
         temperature: 0.6,
         repeatPenalty: 5.0,
         topP: 0.8,
@@ -54,39 +91,14 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string)
         try {
             const response = await axios.post(URL, payload, { headers });
             const result = response.data;
-            let messageContent = result.result.message.content;
+            const messageContent = result.result.message.content;
             
-            // AI가 JSON 외에 다른 텍스트를 포함하여 응답하는 경우가 있으므로,
-            // 응답에서 JSON 객체만 안정적으로 추출합니다.
-            try {
-                // Check if the response is wrapped in markdown code blocks
-                if (messageContent.includes('```json')) {
-                    const jsonMatch = messageContent.match(/```json\s*([\s\S]*?)\s*```/);
-                    if (jsonMatch && jsonMatch[1]) {
-                        messageContent = jsonMatch[1];
-                    }
-                }
-                // Fallback to finding the first and last brace
-                const jsonStart = messageContent.indexOf('{');
-                const jsonEnd = messageContent.lastIndexOf('}');
-
-                if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-                    const jsonString = messageContent.substring(jsonStart, jsonEnd + 1);
-                    return JSON.parse(jsonString);
-                } else {
-                    // If no clear JSON object is found, try to parse the whole thing
-                    return JSON.parse(messageContent);
-                }
-            } catch (e) {
-                console.error("Failed to parse JSON from HyperClova X response. Raw content:", messageContent);
-                // JSON 파싱 실패는 재시도하지 않고 즉시 에러를 던집니다.
-                throw new Error(`Failed to parse JSON from AI response. Raw content: ${messageContent}`);
-            }
+            return parseJsonFromContent(messageContent);
+            
         // This catch block handles network errors or API server errors (e.g., 5xx)
         } catch (error) {
             lastError = error; // Store the last error
             if (axios.isAxiosError(error)) {
-                // JSON 파싱 에러는 위에서 잡히므로 여기서는 주로 네트워크/서버 에러입니다.
                 console.error(`Attempt ${attempt} failed for HyperClova X API call. Status: ${error.response?.status}`, error.response?.data);
             } else {
                 console.error(`Attempt ${attempt} failed for HyperClova X API call:`, error);

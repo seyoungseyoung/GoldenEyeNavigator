@@ -39,10 +39,16 @@ export default function StrategyPage() {
 
     if (storedResult && storedName) {
       try {
-        setStrategy(JSON.parse(storedResult));
+        const parsedStrategy = JSON.parse(storedResult);
+        setStrategy(parsedStrategy);
         setName(storedName);
       } catch (e) {
         console.error("Failed to parse strategy from localStorage", e);
+        toast({
+          variant: 'destructive',
+          title: '오류 발생',
+          description: '저장된 전략을 불러오는 데 실패했습니다. 다시 시도해주세요.',
+        });
         router.push('/survey');
       }
     } else {
@@ -58,13 +64,10 @@ export default function StrategyPage() {
             <Skeleton className="h-12 w-3/4 mx-auto" />
             <Skeleton className="h-6 w-1/2 mx-auto mt-4" />
         </div>
-        <div className="grid gap-6 md:grid-cols-2">
-            {[...Array(4)].map((_, i) => (
-                <Card key={i}>
-                    <CardHeader><Skeleton className="h-8 w-32" /></CardHeader>
-                    <CardContent><Skeleton className="h-48 w-full" /></CardContent>
-                </Card>
-            ))}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-12">
+            <Card className="lg:col-span-5"><CardHeader><Skeleton className="h-8 w-32" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
+            <Card className="lg:col-span-7"><CardHeader><Skeleton className="h-8 w-32" /></CardHeader><CardContent><Skeleton className="h-48 w-full" /></CardContent></Card>
+            <Card className="lg:col-span-12"><CardHeader><Skeleton className="h-8 w-32" /></CardHeader><CardContent><Skeleton className="h-24 w-full" /></CardContent></Card>
         </div>
       </div>
     );
@@ -200,10 +203,6 @@ export default function StrategyPage() {
         </Card>
       </div>
       
-      <Separator className="my-12 bg-border/40" />
-      
-      <MarketAnalysis />
-
       <Card className="bg-card/50 border-border/50 text-center">
         <CardContent className="p-6">
           <h3 className="font-headline text-xl text-primary mb-2">다음 단계: 매매 타이밍 분석</h3>
@@ -217,6 +216,10 @@ export default function StrategyPage() {
         </CardContent>
       </Card>
 
+      <Separator className="my-12 bg-border/40" />
+      
+      <MarketAnalysis />
+      
       <Separator className="my-12 bg-border/40" />
       
       <FinancialQnA strategy={strategy} />

@@ -120,12 +120,12 @@ export function SurveyForm() {
 
       // Navigate to the strategy page. The toast will be shown there.
       router.push('/strategy');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating strategy:', error);
       toast({
         variant: "destructive",
         title: "오류 발생",
-        description: "전략 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        description: error.message || "전략 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
       });
        setIsLoading(false);
     }
