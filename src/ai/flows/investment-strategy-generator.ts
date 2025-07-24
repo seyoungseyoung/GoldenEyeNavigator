@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { callHyperClovaX, Message } from '@/services/hyperclova';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { validateAndRefineStrategy } from './investment-strategy-validator';
+import type { InvestmentStrategyOutput } from './investment-strategy-validator';
 
 
 const InvestmentStrategyInputSchema = z.object({
@@ -90,12 +91,6 @@ const InvestmentStrategyDraftSchema = z.object({
   tradingStrategy: z.string(),
   strategyExplanation: z.string(),
 });
-
-// Final, validated output schema. This is what the user gets.
-export const InvestmentStrategyOutputSchema = InvestmentStrategyDraftSchema.extend({
-    etfStockRecommendations: InvestmentStrategyDraftSchema.shape.etfStockRecommendations.min(3).max(4),
-});
-export type InvestmentStrategyOutput = z.infer<typeof InvestmentStrategyOutputSchema>;
 
 
 export async function investmentStrategyGenerator(input: InvestmentStrategyInput): Promise<InvestmentStrategyOutput> {

@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { InvestmentStrategyOutput } from '@/ai/flows/investment-strategy-generator';
+import type { InvestmentStrategyOutput } from '@/ai/flows/investment-strategy-validator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { MarketAnalysis } from '@/components/strategy/MarketAnalysis';
