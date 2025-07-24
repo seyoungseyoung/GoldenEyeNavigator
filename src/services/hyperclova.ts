@@ -1,21 +1,10 @@
 
 import axios from 'axios';
 
-//환경 변수를 읽을 때 trim()을 사용하여 앞뒤 공백 및 줄바꿈 문자를 제거합니다.
-const API_KEY = process.env.HYPERCLOVA_API_KEY?.trim();
-const REQUEST_ID = process.env.HYPERCLOVA_REQUEST_ID?.trim();
+// 환경 변수를 함수 호출 시점에 읽도록 변경하여 로딩 문제를 해결합니다.
+
 const MODEL = "HCX-003";
 const URL = `https://clovastudio.stream.ntruss.com/testapp/v1/chat-completions/${MODEL}`;
-
-if (!API_KEY || !REQUEST_ID) {
-    throw new Error("HyperClova API Key or Request ID is not defined in .env. Please check your .env file.");
-}
-
-const headers = {
-    "Authorization": `Bearer ${API_KEY}`,
-    "X-NCP-CLOVASTUDIO-REQUEST-ID": REQUEST_ID,
-    "Content-Type": "application/json",
-};
 
 export interface Message {
     role: "system" | "user" | "assistant";
@@ -55,8 +44,18 @@ function parseJsonFromContent(content: string): any {
         console.warn("[DEBUG] Failed to parse JSON from brace-enclosed content:", e);
     }
     
-    // If no valid JSON structure is found, return null. It might be a plain text response.
-    console.log("[DEBUG] No parsable JSON structure found in content.");
+    // AI가 순수 텍스트만 반환한 경우를 대비
+    if (!content.trim().startsWith('{')) {
+        return null;
+    }
+
+    // 최후의 수단으로 전체를 파싱 시도
+    try {
+        return JSON.parse(content);
+    } catch(e) {
+        console.warn("[DEBUG] Final attempt to parse entire content as JSON failed.", e);
+    }
+
     return null;
 }
 
@@ -70,6 +69,20 @@ function parseJsonFromContent(content: string): any {
  * @returns The content of the assistant's response as a JSON object.
  */
 export async function callHyperClovaX(messages: Message[], systemPrompt: string, jsonOutputFormat?: string): Promise<any> {
+    // 함수 호출 시점에서 환경 변수를 읽어옵니다.
+    const API_KEY = process.env.HYPERCLOVA_API_KEY?.trim();
+    const REQUEST_ID = process.env.HYPERCLOVA_REQUEST_ID?.trim();
+
+    if (!API_KEY || !REQUEST_ID) {
+        throw new Error("HyperClova API Key or Request ID is not defined in .env. Please check your .env file.");
+    }
+
+    const headers = {
+        "Authorization": `Bearer ${API_KEY}`,
+        "X-NCP-CLOVASTUDIO-REQUEST-ID": REQUEST_ID,
+        "Content-Type": "application/json",
+    };
+    
     const payload = {
         stream: false,
         topK: 0,
@@ -94,7 +107,9 @@ export async function callHyperClovaX(messages: Message[], systemPrompt: string,
             const response = await axios.post(URL, payload, { headers });
 
             if (!response.data || !response.data.result || !response.data.result.message || !response.data.result.message.content) {
-                throw new Error("Invalid API response structure from HyperClova X.");
+                lastError = new Error("Invalid API response structure from HyperClova X.");
+                console.error(`[DEBUG] Attempt ${attempt} failed: ${lastError.message}`, response.data);
+                continue; // 재시도
             }
 
             const messageContent = response.data.result.message.content;
