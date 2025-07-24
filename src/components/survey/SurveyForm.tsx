@@ -26,7 +26,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { investmentStrategyGenerator } from '@/ai/flows/investment-strategy-generator';
-import { InvestmentStrategyInputSchema, type InvestmentStrategyInput } from '@/ai/flows/investment-strategy-validator';
+import { InvestmentStrategyInputSchema } from '@/ai/flows/investment-strategy-validator';
+import type { InvestmentStrategyInput } from '@/ai/flows/investment-strategy-validator';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = InvestmentStrategyInputSchema;
